@@ -1,0 +1,118 @@
+// KIRSAB PostgreSQL Prisma Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+}
+
+model Category {
+  id           String    @id
+  nameHi       String
+  nameEn       String
+  displayOrder Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  products     Product[]
+}
+
+model Product {
+  id            String      @id
+  nameEn        String
+  nameHi        String
+  categoryId    String
+  category      Category    @relation(fields: [categoryId], references: [id])
+  unit          String      // e.g. "1 kg", "500 g", "100 g", "1 bunch", "1 piece"
+  unitHindi     String      // e.g. "प्रति किलो", "प्रति 500 ग्राम"
+  unitShort     String      // e.g. "kg", "500g", "100g", "bunch", "pc"
+  price         Float?      // Configurable price (null means unconfigured / unavailable)
+  isConfigured  Boolean     @default(false)
+  inStock       Boolean     @default(true)
+  isActive      Boolean     @default(true)
+  stockQuantity Int         @default(100)
+  badge         String?
+  description   String?
+  image         String
+  fallbackEmoji String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  orderItems    OrderItem[]
+
+  @@index([categoryId])
+  @@index([inStock, isConfigured, isActive])
+}
+
+model StoreSettings {
+  id                     String   @id @default("default")
+  brandName              String   @default("KIRSAB")
+  brandNameHindi         String   @default("किरसाब")
+  tagline                String   @default("सब्ज़ी | किराना | घर तक")
+  taglineEnglish         String   @default("Vegetables | Grocery | Direct to your Doorstep")
+  whatsappNumber         String   @default("REPLACE_WITH_BUSINESS_NUMBER")
+  serviceAreaPrimary     String   @default("Shervani Legacy")
+  serviceAreaCity        String   @default("Prayagraj")
+  serviceAreaState       String   @default("Uttar Pradesh")
+  serviceAreaPincode     String   @default("211011")
+  serviceAreaDescription String   @default("वर्तमान में केवल शेरवानी लेगेसी (Shervani Legacy) एवं आसपास के चयनित फ्लैट्स के लिए उपलब्ध।")
+  minOrderValue          Float    @default(150)
+  standardDeliveryFee    Float    @default(10)
+  freeDeliveryThreshold  Float    @default(299)
+  isStoreOpen            Boolean  @default(true)
+  deliverySlotsJson      String   @default("[{\"id\":\"morning\",\"label\":\"सुबह का स्लॉट (Morning)\",\"time\":\"07:00 AM - 10:00 AM\",\"note\":\"ताज़ा सुबह स्टॉक\"},{\"id\":\"evening\",\"label\":\"शाम का स्लॉट (Evening)\",\"time\":\"05:00 PM - 08:00 PM\",\"note\":\"शाम के भोजन हेतु\"}]")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  orderNumber    String      @unique // e.g. KIR-2026-1001
+  customerName   String
+  customerPhone  String
+  address        String
+  landmark       String?
+  deliverySlot   String
+  instructions   String?
+  subtotal       Float
+  deliveryFee    Float
+  finalTotal     Float
+  status         String      @default("pending") // pending, confirmed, packed, out_for_delivery, delivered, cancelled
+  paymentMethod  String      @default("cod")
+  paymentStatus  String      @default("pending")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          OrderItem[]
+
+  @@index([orderNumber])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productNameEn String   // Immutable snapshot
+  productNameHi String   // Immutable snapshot
+  unit          String   // Immutable snapshot
+  unitPrice     Float    // Immutable snapshot
+  quantity      Int
+  lineTotal     Float
+
+  @@index([orderId])
+}
