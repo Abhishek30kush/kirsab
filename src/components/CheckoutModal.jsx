@@ -111,8 +111,34 @@ export const CheckoutModal = () => {
         window.open(response.whatsappUrl, '_blank', 'noopener,noreferrer');
       }
     } catch (err) {
-      console.error('Order submission failed:', err);
-      setApiError(err.message || 'ऑर्डर दर्ज करने में असमर्थ। कृपया पुनः प्रयास करें।');
+      console.warn('Backend server order logging failed, proceeding with direct WhatsApp checkout:', err);
+      try {
+        const directMessage = buildWhatsAppMessage({
+          customer: formData,
+          items: enrichedItems,
+          totals,
+        });
+        const directUrl = createWhatsAppOrderUrl(directMessage);
+
+        setSubmittedOrder({
+          message: directMessage,
+          whatsappUrl: directUrl,
+          customer: { ...formData },
+          totals: {
+            subtotal: totals.subtotal,
+            deliveryFee: totals.deliveryFee,
+            finalTotal: totals.finalTotal,
+          },
+          orderNumber: null,
+        });
+
+        if (directUrl) {
+          window.open(directUrl, '_blank', 'noopener,noreferrer');
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback WhatsApp generation failed:', fallbackErr);
+        setApiError(err.message || 'ऑर्डर दर्ज करने में असमर्थ। कृपया पुनः प्रयास करें।');
+      }
     } finally {
       setIsSubmitting(false);
     }
