@@ -4,17 +4,17 @@ import { translations } from '../translations/translations';
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  // Read saved preference or default to Hindi ('hi')
+  // Read saved preference or default to English ('en')
   const [language, setLanguageState] = useState(() => {
     try {
-      return localStorage.getItem('kirsab_language') || 'hi';
+      return localStorage.getItem('kirsab_language') || 'en';
     } catch {
-      return 'hi';
+      return 'en';
     }
   });
 
   const setLanguage = (lang) => {
-    const validLang = lang === 'en' ? 'en' : 'hi';
+    const validLang = lang === 'hi' ? 'hi' : 'en';
     setLanguageState(validLang);
     try {
       localStorage.setItem('kirsab_language', validLang);
@@ -24,16 +24,19 @@ export const LanguageProvider = ({ children }) => {
   };
 
   const toggleLanguage = () => {
-    setLanguage(language === 'hi' ? 'en' : 'hi');
+    setLanguage(language === 'en' ? 'hi' : 'en');
   };
 
   // Translation lookup helper
   const t = (key, fallback = '') => {
-    const langDict = translations[language] || translations.hi;
+    const langDict = translations[language] || translations.en;
     if (langDict && langDict[key] !== undefined) {
       return langDict[key];
     }
-    // Fallback to Hindi if key missing in English
+    // Fallback to English then Hindi if key missing
+    if (translations.en && translations.en[key] !== undefined) {
+      return translations.en[key];
+    }
     if (translations.hi && translations.hi[key] !== undefined) {
       return translations.hi[key];
     }
