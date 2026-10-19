@@ -47,6 +47,16 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 // Apply general rate limiter
 app.use('/api', generalApiLimiter);
 
+// Root Landing Endpoint
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    message: '🥬 KIRSAB Backend API is running successfully!',
+    healthCheck: '/api/health',
+    documentation: 'See README.md for endpoint specifications'
+  });
+});
+
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
   res.json({
