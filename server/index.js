@@ -27,9 +27,17 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl)
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      // Allow wildcard or local dev
+      if (process.env.CLIENT_URL === '*' || process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+      // Allow any Vercel deployment preview / production domain
+      if (origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.indexOf(origin) !== -1) {
         return callback(null, true);
       }
       return callback(new Error('CORS policy: Not allowed by CORS'));
