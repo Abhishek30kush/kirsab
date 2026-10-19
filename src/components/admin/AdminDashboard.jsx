@@ -161,24 +161,24 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
         if (onCatalogChanged) onCatalogChanged();
       }
     } catch (err) {
-      alert(err.message || 'स्टॉक बदलने में विफलता');
+      alert(err.message || 'Failed to update stock status');
     }
   };
 
   // Delete product
   const handleDeleteProduct = async (product) => {
-    if (!window.confirm(`क्या आप '${product.nameHi}' को हटाना चाहते हैं?`)) {
+    if (!window.confirm(`Are you sure you want to delete '${product.nameEn || product.nameHi}'?`)) {
       return;
     }
     try {
       const res = await api.deleteProduct(product.id);
       if (res.success) {
         fetchProducts();
-        showFeedback(res.message);
+        showFeedback(res.message || 'Product deleted successfully');
         if (onCatalogChanged) onCatalogChanged();
       }
     } catch (err) {
-      alert(err.message || 'उत्पाद हटाने में विफलता');
+      alert(err.message || 'Failed to delete product');
     }
   };
 
@@ -190,11 +190,11 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
         setOrders(prev =>
           prev.map(o => (o.id === orderId ? { ...o, status: newStatus } : o))
         );
-        showFeedback(res.message);
+        showFeedback(res.message || 'Order status updated successfully');
         fetchStats();
       }
     } catch (err) {
-      alert(err.message || 'स्थिति बदलने में विफलता');
+      alert(err.message || 'Failed to update order status');
     }
   };
 
@@ -205,11 +205,11 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
     try {
       const res = await api.updateSettings(settingsForm);
       if (res.success) {
-        showFeedback('स्टोर सेटिंग्स सफलतापूर्वक सुरक्षित की गईं!');
+        showFeedback('Store settings saved successfully!');
         if (onCatalogChanged) onCatalogChanged();
       }
     } catch (err) {
-      alert(err.message || 'सेटिंग्स सुरक्षित करने में त्रुटि');
+      alert(err.message || 'Error saving settings');
     } finally {
       setIsSavingSettings(false);
     }
@@ -262,7 +262,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
             <div className="flex items-center gap-3">
               <span className="font-black text-xl tracking-tight">KIRSAB</span>
               <span className="bg-emerald-500/20 text-emerald-300 text-xs px-2.5 py-0.5 rounded-full font-bold border border-emerald-500/30">
-                एडमिन पोर्टल (Admin)
+                Admin Portal
               </span>
             </div>
 
@@ -273,11 +273,11 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                 className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>ग्राहक स्टोर देखें</span>
+                <span>View Customer Store</span>
               </button>
 
               <div className="text-right hidden md:block">
-                <span className="block text-xs font-bold leading-tight">{adminUser?.name || 'स्टोर प्रबंधक'}</span>
+                <span className="block text-xs font-bold leading-tight">{adminUser?.name || 'Store Manager'}</span>
                 <span className="text-[10px] text-white/70 block leading-tight">{adminUser?.email}</span>
               </div>
 
@@ -285,10 +285,10 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                 type="button"
                 onClick={handleLogout}
                 className="inline-flex items-center gap-1.5 text-xs font-bold bg-red-600/80 hover:bg-red-600 px-3 py-1.5 rounded-xl transition-colors"
-                title="लॉगआउट करें"
+                title="Log Out"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">लॉगआउट</span>
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
 
@@ -303,7 +303,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                 activeTab === 'overview' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
-              दैनिक सारांश (Overview)
+              Overview
             </button>
 
             <button
@@ -313,7 +313,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                 activeTab === 'products' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
-              <span>सब्ज़ी व भाव प्रबंधन (Products)</span>
+              <span>Products & Inventory</span>
               {products.length > 0 && (
                 <span className="text-[10px] bg-brand-soft text-brand-dark px-1.5 py-0.2 rounded-full font-black">
                   {products.length}
@@ -334,7 +334,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
               }`}
             >
               <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-              <span>भाव व मुनाफ़ा कैलकुलेटर (Pricing)</span>
+              <span>Pricing Calculator</span>
             </button>
 
             <button
@@ -344,7 +344,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                 activeTab === 'orders' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
-              <span>ऑर्डर्स व डिलीवरी (Orders)</span>
+              <span>Orders & Dispatch</span>
               {stats?.pendingOrders > 0 && (
                 <span className="text-[10px] bg-amber-400 text-amber-950 px-1.5 py-0.2 rounded-full font-black animate-pulse">
                   {stats.pendingOrders}
@@ -359,7 +359,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                 activeTab === 'settings' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
               }`}
             >
-              स्टोर सेटिंग्स (Settings)
+              Store Settings
             </button>
           </div>
         </div>
@@ -390,31 +390,31 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
               
               <div className="bg-white p-5 rounded-3xl border border-brand-border shadow-xs">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-brand-muted block">
-                  आज की कुल बिक्री (Today Revenue)
+                  Today's Revenue
                 </span>
                 <span className="text-2xl sm:text-3xl font-black text-brand-dark mt-2 block">
                   {formatCurrency(stats?.todayRevenue || 0)}
                 </span>
                 <span className="text-xs text-brand-muted mt-1 block">
-                  कुल बिक्री: {formatCurrency(stats?.totalRevenue || 0)}
+                  Total Revenue: {formatCurrency(stats?.totalRevenue || 0)}
                 </span>
               </div>
 
               <div className="bg-white p-5 rounded-3xl border border-brand-border shadow-xs">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-brand-muted block">
-                  आज के ऑर्डर्स (Today Orders)
+                  Today's Orders
                 </span>
                 <span className="text-2xl sm:text-3xl font-black text-brand-charcoal mt-2 block">
                   {stats?.todayOrders || 0}
                 </span>
                 <span className="text-xs text-brand-muted mt-1 block">
-                  लाइफटाइम: {stats?.totalOrders || 0} ऑर्डर्स
+                  Lifetime: {stats?.totalOrders || 0} Orders
                 </span>
               </div>
 
               <div className="bg-white p-5 rounded-3xl border border-brand-border shadow-xs">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 block">
-                  लंबित ऑर्डर्स (Pending Orders)
+                  Pending Orders
                 </span>
                 <span className="text-2xl sm:text-3xl font-black text-amber-600 mt-2 block">
                   {stats?.pendingOrders || 0}
@@ -427,13 +427,13 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   }}
                   className="text-xs font-bold text-brand-dark hover:underline mt-1 block"
                 >
-                  ऑर्डर्स देखें →
+                  View Pending Orders →
                 </button>
               </div>
 
               <div className="bg-white p-5 rounded-3xl border border-brand-border shadow-xs">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-brand-muted block">
-                  सक्रिय सब्ज़ियाँ (Active Vegetables)
+                  Active Vegetables
                 </span>
                 <span className="text-2xl sm:text-3xl font-black text-brand-fresh mt-2 block">
                   {stats?.activeProductsCount || 0}
@@ -443,7 +443,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   onClick={() => setActiveTab('products')}
                   className="text-xs font-bold text-brand-dark hover:underline mt-1 block"
                 >
-                  भाव व स्टॉक बदलें →
+                  Manage Stock & Prices →
                 </button>
               </div>
 
@@ -452,7 +452,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
             {/* Quick Action Center */}
             <div className="bg-white p-6 rounded-3xl border border-brand-border shadow-xs space-y-4">
               <h3 className="font-bold text-base text-brand-charcoal">
-                तुरंत कार्य (Quick Actions for Store Manager)
+                Quick Actions for Store Manager
               </h3>
               
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -465,8 +465,8 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   className="p-4 rounded-2xl bg-brand-soft/60 hover:bg-brand-soft border border-brand-border/80 text-left transition-all"
                 >
                   <Plus className="w-5 h-5 text-brand-dark mb-2" />
-                  <span className="font-bold text-sm block">नई सब्ज़ी जोड़ें</span>
-                  <span className="text-xs text-brand-muted">नया स्टॉक या मौसमी सब्ज़ी जोड़ें</span>
+                  <span className="font-bold text-sm block">Add New Vegetable</span>
+                  <span className="text-xs text-brand-muted">Add fresh or seasonal vegetable item</span>
                 </button>
 
                 <button
@@ -478,18 +478,18 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   className="p-4 rounded-2xl bg-amber-50 hover:bg-amber-100/70 border border-amber-200 text-left transition-all"
                 >
                   <Clock className="w-5 h-5 text-amber-600 mb-2" />
-                  <span className="font-bold text-sm block">लंबित ऑर्डर्स प्रोसेस करें</span>
-                  <span className="text-xs text-brand-muted">{stats?.pendingOrders || 0} ऑर्डर्स स्वीकृति प्रतीक्षारत</span>
+                  <span className="font-bold text-sm block">Process Pending Orders</span>
+                  <span className="text-xs text-brand-muted">{stats?.pendingOrders || 0} orders awaiting dispatch</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setActiveTab('settings')}
+                  onClick={() => setActiveTab('pricing-calculator')}
                   className="p-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 text-left transition-all"
                 >
-                  <Settings className="w-5 h-5 text-brand-fresh mb-2" />
-                  <span className="font-bold text-sm block">स्टोर व स्लॉट सेटिंग्स</span>
-                  <span className="text-xs text-brand-muted">WhatsApp नंबर व डिलीवरी नियम बदलें</span>
+                  <Calculator className="w-5 h-5 text-brand-fresh mb-2" />
+                  <span className="font-bold text-sm block">Pricing Calculator</span>
+                  <span className="text-xs text-brand-muted">Calculate selling price, wastage & margin</span>
                 </button>
               </div>
             </div>
@@ -512,7 +512,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                     type="text"
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
-                    placeholder="सब्ज़ी खोजें (Search)..."
+                    placeholder="Search vegetables (e.g. Potato, Tomato)..."
                     className="w-full pl-9 pr-3 py-2 rounded-xl border border-brand-border text-xs focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   />
                 </div>
@@ -522,10 +522,10 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   onChange={(e) => setSelectedProductCategory(e.target.value)}
                   className="px-3 py-2 rounded-xl border border-brand-border text-xs bg-white font-medium"
                 >
-                  <option value="all">सभी श्रेणियाँ</option>
-                  <option value="daily-essentials">रोज़ाना ज़रूरी</option>
-                  <option value="fresh-greens">ताज़ी हरी सब्ज़ियाँ</option>
-                  <option value="aromatics">अदरक, मिर्च व तड़का</option>
+                  <option value="all">All Categories</option>
+                  <option value="daily-essentials">Daily Essentials</option>
+                  <option value="fresh-greens">Fresh Greens</option>
+                  <option value="aromatics">Aromatics & Herbs</option>
                 </select>
               </div>
 
@@ -539,7 +539,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                 className="w-full sm:w-auto bg-brand-dark hover:bg-brand-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
-                <span>नई सब्ज़ी जोड़ें</span>
+                <span>Add Vegetable</span>
               </button>
 
             </div>
@@ -550,13 +550,13 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                 <table className="w-full text-left text-xs">
                   <thead className="bg-brand-soft/60 text-brand-dark uppercase tracking-wider font-bold border-b border-brand-border">
                     <tr>
-                      <th className="p-3.5">सब्ज़ी</th>
-                      <th className="p-3.5">श्रेणी</th>
-                      <th className="p-3.5">पैकेज इकाई</th>
-                      <th className="p-3.5">दैनिक भाव</th>
-                      <th className="p-3.5 text-center">स्टॉक स्थिति</th>
-                      <th className="p-3.5 text-center">सक्रिय</th>
-                      <th className="p-3.5 text-right">कार्य</th>
+                      <th className="p-3.5">Vegetable</th>
+                      <th className="p-3.5">Category</th>
+                      <th className="p-3.5">Package Unit</th>
+                      <th className="p-3.5">Selling Price</th>
+                      <th className="p-3.5 text-center">Stock Status</th>
+                      <th className="p-3.5 text-center">Active</th>
+                      <th className="p-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-brand-border">
@@ -577,10 +577,10 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                             </div>
                             <div>
                               <span className="font-bold text-brand-charcoal text-sm block">
-                                {p.nameHi}
+                                {p.nameEn}
                               </span>
                               <span className="text-[11px] text-brand-muted block">
-                                {p.nameEn} • {p.id}
+                                {p.nameHi} • ID: {p.id}
                               </span>
                             </div>
                           </td>
@@ -588,13 +588,13 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                           {/* Category */}
                           <td className="p-3.5">
                             <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-medium">
-                              {p.category?.nameHi || p.categoryId}
+                              {p.category?.nameEn || p.category?.nameHi || p.categoryId}
                             </span>
                           </td>
 
                           {/* Unit */}
                           <td className="p-3.5 font-medium text-brand-charcoal">
-                            {p.unitHindi || p.unit}
+                            {p.unit} ({p.unitHindi})
                           </td>
 
                           {/* Price */}
@@ -605,7 +605,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                               </span>
                             ) : (
                               <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                                भाव प्रतीक्षारत
+                                Price Pending
                               </span>
                             )}
                           </td>
@@ -621,7 +621,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                                   : 'bg-red-100 text-red-800 border border-red-300'
                               }`}
                             >
-                              {p.inStock ? 'उपलब्ध (In Stock)' : 'समाप्त (Out)'}
+                              {p.inStock ? 'In Stock' : 'Out of Stock'}
                             </button>
                           </td>
 
@@ -640,7 +640,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                                   setIsProductModalOpen(true);
                                 }}
                                 className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-brand-charcoal"
-                                title="संपादित करें"
+                                title="Edit Vegetable"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
@@ -649,7 +649,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                                 type="button"
                                 onClick={() => handleDeleteProduct(p)}
                                 className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600"
-                                title="हटाएं"
+                                title="Delete Vegetable"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -680,7 +680,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   type="text"
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
-                  placeholder="ऑर्डर #, नाम, फोन या फ्लैट खोजें..."
+                  placeholder="Search by order #, name, phone, flat..."
                   className="w-full pl-9 pr-3 py-2 rounded-xl border border-brand-border text-xs focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
@@ -698,7 +698,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {st === 'out_for_delivery' ? 'Out' : st}
+                    {st === 'out_for_delivery' ? 'Out for Delivery' : st}
                   </button>
                 ))}
               </div>
@@ -711,7 +711,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                 {filteredOrders.map((order) => {
                   const customerPhoneClean = order.customerPhone.replace(/[^0-9]/g, '');
                   const waCustomerUrl = `https://wa.me/91${customerPhoneClean}?text=${encodeURIComponent(
-                    `नमस्ते ${order.customerName} जी, आपके KIRSAB ऑर्डर #${order.orderNumber} के बारे में जानकारी:`
+                    `Hello ${order.customerName}, regarding your KIRSAB order #${order.orderNumber}:`
                   )}`;
 
                   return (
@@ -743,12 +743,12 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                             statusColors[order.status] || 'bg-gray-100'
                           }`}
                         >
-                          <option value="pending">स्वीकृति प्रतीक्षारत (Pending)</option>
-                          <option value="confirmed">स्वीकृत (Confirmed)</option>
-                          <option value="packed">पैक हो गया (Packed)</option>
-                          <option value="out_for_delivery">डिलीवरी पर (Out)</option>
-                          <option value="delivered">डिलीवर हुआ (Delivered)</option>
-                          <option value="cancelled">रद्द (Cancelled)</option>
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="packed">Packed</option>
+                          <option value="out_for_delivery">Out for Delivery</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
                         </select>
                       </div>
 
@@ -763,7 +763,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                             className="text-[#25D366] font-bold inline-flex items-center gap-1 hover:underline text-[11px]"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
-                            <span>WhatsApp चैट</span>
+                            <span>WhatsApp Chat</span>
                           </a>
                         </div>
                         <p className="text-brand-muted">
@@ -773,7 +773,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                           📍 {order.address} {order.landmark && `(${order.landmark})`}
                         </p>
                         <p className="text-brand-dark font-semibold">
-                          ⏰ स्लॉट: {order.deliverySlot}
+                          ⏰ Slot: {order.deliverySlot}
                         </p>
                         {order.instructions && (
                           <p className="text-brand-muted italic mt-1">
@@ -785,13 +785,13 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                       {/* Order Items Snapshot */}
                       <div className="space-y-1.5 text-xs">
                         <span className="font-bold text-[11px] text-brand-muted uppercase tracking-wider">
-                          सब्ज़ियाँ ({order.items.length}):
+                          Vegetables ({order.items.length}):
                         </span>
                         <div className="max-h-32 overflow-y-auto divide-y divide-gray-100 pr-1">
                           {order.items.map((item) => (
                             <div key={item.id} className="py-1 flex justify-between">
                               <span>
-                                {item.productNameHi} ({item.productNameEn}) × {item.quantity} {item.unit}
+                                {item.productNameEn || item.productNameHi} × {item.quantity} {item.unit}
                               </span>
                               <span className="font-semibold text-brand-charcoal">
                                 ₹{item.lineTotal}
@@ -804,10 +804,10 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                       {/* Total Bar */}
                       <div className="pt-2 border-t border-brand-border flex items-center justify-between text-xs">
                         <span className="text-brand-muted">
-                          सब्ज़ी: ₹{order.subtotal} + डिलीवरी: ₹{order.deliveryFee}
+                          Items: ₹{order.subtotal} + Delivery: ₹{order.deliveryFee}
                         </span>
                         <span className="font-extrabold text-sm text-brand-dark">
-                          कुल: ₹{order.finalTotal}
+                          Total: ₹{order.finalTotal}
                         </span>
                       </div>
 
@@ -818,8 +818,8 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
             ) : (
               <div className="text-center py-12 bg-white rounded-3xl border border-brand-border p-6">
                 <span className="text-3xl block mb-2">📦</span>
-                <h4 className="font-bold text-sm text-brand-charcoal">कोई ऑर्डर नहीं मिला</h4>
-                <p className="text-xs text-brand-muted mt-1">वर्तमान फ़िल्टर या खोज के लिए कोई ऑर्डर मौजूद नहीं है।</p>
+                <h4 className="font-bold text-sm text-brand-charcoal">No Orders Found</h4>
+                <p className="text-xs text-brand-muted mt-1">There are no orders matching the selected filter or search keyword.</p>
               </div>
             )}
 
@@ -832,10 +832,10 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
             
             <div>
               <h3 className="font-extrabold text-lg text-brand-charcoal">
-                स्टोर सेटिंग्स व डिलीवरी नियम (Store Configuration)
+                Store Configuration & Delivery Rules
               </h3>
               <p className="text-xs text-brand-muted mt-0.5">
-                यहाँ की गई सेटिंग्स सीधे ग्राहक वेबसाइट और WhatsApp चेकआउट पर लागू होंगी।
+                Settings updated here apply directly to the customer website and WhatsApp checkout.
               </p>
             </div>
 
@@ -844,9 +844,9 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
               {/* Store Open/Closed Toggle */}
               <div className="p-4 rounded-2xl bg-brand-soft/50 border border-brand-border flex items-center justify-between">
                 <div>
-                  <strong className="block text-xs text-brand-charcoal">स्टोर की स्थिति (Store Status)</strong>
+                  <strong className="block text-xs text-brand-charcoal">Store Status</strong>
                   <span className="text-[11px] text-brand-muted">
-                    यदि स्टोर बंद करेंगे तो ग्राहक ऑर्डर नहीं कर पाएंगे।
+                    When closed, customers will not be able to place new orders.
                   </span>
                 </div>
                 <button
@@ -858,14 +858,14 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                       : 'bg-red-600 text-white'
                   }`}
                 >
-                  {settingsForm.isStoreOpen ? 'दुकान खुली है (Open)' : 'दुकान बंद है (Closed)'}
+                  {settingsForm.isStoreOpen ? 'Store is OPEN' : 'Store is CLOSED'}
                 </button>
               </div>
 
               {/* WhatsApp Number */}
               <div>
                 <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                  बिज़नेस WhatsApp नंबर (Business WhatsApp Number) *
+                  Business WhatsApp Number *
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-brand-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -873,12 +873,12 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                     type="text"
                     value={settingsForm.whatsappNumber}
                     onChange={(e) => setSettingsForm({ ...settingsForm, whatsappNumber: e.target.value })}
-                    placeholder="919876543210 (देश कोड 91 के साथ)"
+                    placeholder="919876543210 (with country code 91)"
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-brand-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   />
                 </div>
                 <span className="text-[10px] text-brand-muted mt-1 block">
-                  बिना किसी '+' या स्पेस के 12 अंक लिखें (उदा. 919876543210)।
+                  Write 12 digits without '+' or spaces (e.g. 918808481400).
                 </span>
               </div>
 
@@ -886,7 +886,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                    न्यूनतम ऑर्डर मूल्य (Min Order ₹)
+                    Minimum Order Value (₹)
                   </label>
                   <input
                     type="number"
@@ -899,7 +899,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
 
                 <div>
                   <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                    डिलीवरी शुल्क (Delivery Fee ₹)
+                    Standard Delivery Fee (₹)
                   </label>
                   <input
                     type="number"
@@ -912,7 +912,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
 
                 <div>
                   <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                    मुफ़्त डिलीवरी सीमा (Free Delivery on ₹)
+                    Free Delivery Threshold (₹)
                   </label>
                   <input
                     type="number"
@@ -928,7 +928,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                    प्रमुख सेवा क्षेत्र (Primary Area)
+                    Primary Service Area
                   </label>
                   <input
                     type="text"
@@ -940,7 +940,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
 
                 <div>
                   <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                    शहर (City)
+                    City
                   </label>
                   <input
                     type="text"
@@ -959,7 +959,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   className="w-full bg-brand-dark hover:bg-brand-hover text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
                 >
                   <Check className="w-4 h-4" />
-                  <span>{isSavingSettings ? 'सुरक्षित हो रहा है...' : 'सेटिंग्स सुरक्षित करें (Save Store Settings)'}</span>
+                  <span>{isSavingSettings ? 'Saving...' : 'Save Store Settings'}</span>
                 </button>
               </div>
 
@@ -993,7 +993,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
         onSaved={() => {
           fetchProducts();
           fetchStats();
-          showFeedback('उत्पाद सफलतापूर्वक अपडेट किया गया!');
+          showFeedback('Product updated successfully!');
           if (onCatalogChanged) onCatalogChanged();
         }}
       />

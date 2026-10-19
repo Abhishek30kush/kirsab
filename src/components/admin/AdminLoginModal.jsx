@@ -15,7 +15,7 @@ export const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
     setError(null);
 
     if (!email.trim() || !password) {
-      setError('कृपया ईमेल और पासवर्ड दर्ज करें');
+      setError('Please enter both email and password');
       return;
     }
 
@@ -29,11 +29,11 @@ export const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
         }
         onClose();
       } else {
-        setError(response.message || 'लॉगिन विफल रहा');
+        setError(response.message || 'Login failed. Please check credentials.');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.message || 'गलत ईमेल या पासवर्ड');
+      setError(err.message || 'Invalid email or password');
     } finally {
       setIsLoading(false);
     }
@@ -57,8 +57,8 @@ export const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
                 <Lock className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-bold">KIRSAB एडमिन पोर्टल</h3>
-                <p className="text-xs text-white/80">स्टोर प्रबंधक व मालिक लॉगिन</p>
+                <h3 className="text-lg font-bold">KIRSAB Admin Portal</h3>
+                <p className="text-xs text-white/80">Store Manager & Owner Login</p>
               </div>
             </div>
 
@@ -83,7 +83,7 @@ export const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
             {/* Email */}
             <div>
               <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                एडमिन ईमेल (Admin Email)
+                Admin Email
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-brand-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -101,7 +101,7 @@ export const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
             {/* Password */}
             <div>
               <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                पासवर्ड (Password)
+                Password
               </label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-brand-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -124,10 +124,10 @@ export const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
                 className="w-full bg-brand-dark hover:bg-brand-hover disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
               >
                 {isLoading ? (
-                  <span>प्रमाणीकरण हो रहा है...</span>
+                  <span>Authenticating...</span>
                 ) : (
                   <>
-                    <span>सुरक्षित लॉगिन करें</span>
+                    <span>Secure Sign In</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -138,10 +138,10 @@ export const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
             <div className="p-3 rounded-xl bg-brand-soft/60 border border-brand-border text-[11px] text-brand-muted space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-brand-dark">
                 <ShieldCheck className="w-3.5 h-3.5 text-brand-fresh" />
-                <span>सुरक्षित एडमिन क्रेडेंशियल</span>
+                <span>Protected Admin Credentials</span>
               </div>
               <p>
-                डिफ़ॉल्ट एडमिन क्रेडेंशियल बदलने या नया खाता बनाने हेतु कमांड लाइन में <code className="bg-white px-1 py-0.5 rounded font-mono text-brand-dark">node scripts/createAdmin.js</code> चलाएं।
+                To create or update admin credentials, run <code className="bg-white px-1 py-0.5 rounded font-mono text-brand-dark">node scripts/createAdmin.js</code> in your server console.
               </p>
             </div>
           </form>

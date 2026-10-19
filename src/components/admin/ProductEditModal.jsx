@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { X, Save, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { api } from '../../utils/api';
 
 const PRESET_UNITS = [
@@ -96,7 +96,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
     setError(null);
 
     if (!formData.nameEn.trim() || !formData.nameHi.trim() || !formData.image.trim()) {
-      setError('कृपया अंग्रेज़ी नाम, हिंदी नाम और फोटो URL अवश्य भरें।');
+      setError('Please provide English Name, Hindi Name, and Image URL.');
       return;
     }
 
@@ -120,7 +120,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
       onClose();
     } catch (err) {
       console.error('Save product error:', err);
-      setError(err.message || 'उत्पाद सुरक्षित करने में त्रुटि');
+      setError(err.message || 'Error saving product');
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +140,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
           {/* Header */}
           <div className="p-4 sm:p-5 bg-brand-dark text-white flex items-center justify-between">
             <h3 className="text-base sm:text-lg font-bold">
-              {isEditing ? `संपादित करें: ${product.nameHi} (${product.nameEn})` : 'नई सब्ज़ी जोड़ें (Add New Product)'}
+              {isEditing ? `Edit: ${product.nameEn} (${product.nameHi})` : 'Add New Vegetable Product'}
             </h3>
             <button
               type="button"
@@ -164,14 +164,14 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                  हिंदी नाम (Hindi Name) *
+                  Hindi Name (हिंदी नाम) *
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.nameHi}
                   onChange={(e) => setFormData({ ...formData, nameHi: e.target.value })}
-                  placeholder="उदा. पालक / शिमला मिर्च"
+                  placeholder="e.g. पालक / शिमला मिर्च"
                   className="w-full px-3.5 py-2 rounded-xl border border-brand-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
@@ -195,22 +195,22 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                  श्रेणी (Category) *
+                  Category *
                 </label>
                 <select
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl border border-brand-border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 >
-                  <option value="daily-essentials">रोज़ाना ज़रूरी (Daily Essentials)</option>
-                  <option value="fresh-greens">ताज़ी हरी सब्ज़ियाँ (Fresh Greens)</option>
-                  <option value="aromatics">अदरक, मिर्च व तड़का (Aromatics)</option>
+                  <option value="daily-essentials">Daily Essentials (रोज़ाना ज़रूरी)</option>
+                  <option value="fresh-greens">Fresh Greens (ताज़ी हरी सब्ज़ियाँ)</option>
+                  <option value="aromatics">Aromatics & Herbs (अदरक, मिर्च व तड़का)</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                  उत्पाद ID / Slug (Unique ID) {!isEditing && '*'}
+                  Product ID / Slug (Unique ID) {!isEditing && '*'}
                 </label>
                 <input
                   type="text"
@@ -226,13 +226,13 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
             {/* Unit Specification & Consistent Model */}
             <div className="p-3.5 bg-brand-soft/40 rounded-2xl border border-brand-border space-y-3">
               <span className="block text-xs font-bold text-brand-dark">
-                पैकेज इकाई व तौल मॉडल (Package Unit Model)
+                Package Unit & Weight Model
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-brand-charcoal mb-1">
-                    इकाई पैकेज (Preset Unit)
+                    Preset Unit
                   </label>
                   <select
                     value={formData.unit}
@@ -247,7 +247,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
 
                 <div>
                   <label className="block text-[11px] font-bold text-brand-charcoal mb-1">
-                    हिंदी विवरण (Unit Hindi)
+                    Hindi Unit Label
                   </label>
                   <input
                     type="text"
@@ -259,7 +259,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
 
                 <div>
                   <label className="block text-[11px] font-bold text-brand-charcoal mb-1">
-                    संक्षिप्त (Short)
+                    Short Unit
                   </label>
                   <input
                     type="text"
@@ -275,7 +275,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div>
                 <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                  दैनिक भाव (Price in ₹)
+                  Selling Price (₹)
                 </label>
                 <input
                   type="number"
@@ -283,17 +283,17 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
                   min="0"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  placeholder="खाली रखें यदि भाव तय नहीं"
+                  placeholder="Leave empty if pending"
                   className="w-full px-3.5 py-2 rounded-xl border border-brand-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
                 <span className="text-[10px] text-brand-muted mt-0.5 block">
-                  खाली छोड़ने पर 'भाव प्रतीक्षारत' दिखेगा।
+                  Unset price displays as 'Price Pending' on store.
                 </span>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                  स्टॉक मात्रा (Stock Qty)
+                  Stock Quantity
                 </label>
                 <input
                   type="number"
@@ -306,13 +306,13 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
 
               <div>
                 <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                  बैज (Badge - ऐच्छिक)
+                  Badge (Optional)
                 </label>
                 <input
                   type="text"
                   value={formData.badge}
                   onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
-                  placeholder="उदा. ताज़ा स्टॉक / देसी"
+                  placeholder="e.g. Fresh Stock / Farm Fresh"
                   className="w-full px-3.5 py-2 rounded-xl border border-brand-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
@@ -321,7 +321,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
             {/* Image URL & Live Preview */}
             <div>
               <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                फोटो लिंक (Image URL) *
+                Product Image URL *
               </label>
               <div className="flex gap-3 items-center">
                 <input
@@ -350,13 +350,13 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
             {/* Description */}
             <div>
               <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                विवरण (Description)
+                Description
               </label>
               <textarea
                 rows={2}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="सब्ज़ी के बारे में संक्षिप्त जानकारी..."
+                placeholder="Brief description of the vegetable..."
                 className="w-full px-3.5 py-2 rounded-xl border border-brand-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
               />
             </div>
@@ -370,7 +370,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
                   onChange={(e) => setFormData({ ...formData, inStock: e.target.checked })}
                   className="w-4 h-4 text-brand-dark rounded"
                 />
-                <span>स्टॉक में उपलब्ध है (In Stock)</span>
+                <span>In Stock</span>
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-brand-charcoal">
@@ -380,7 +380,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                   className="w-4 h-4 text-brand-dark rounded"
                 />
-                <span>वेबसाइट पर सक्रिय (Active)</span>
+                <span>Active on Store</span>
               </label>
             </div>
 
@@ -391,7 +391,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
                 onClick={onClose}
                 className="px-4 py-2 rounded-xl border border-brand-border text-xs font-semibold text-brand-muted hover:bg-gray-50"
               >
-                रद्द करें
+                Cancel
               </button>
 
               <button
@@ -400,7 +400,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
                 className="px-5 py-2 rounded-xl bg-brand-dark hover:bg-brand-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
               >
                 <Save className="w-4 h-4" />
-                <span>{isLoading ? 'सेव हो रहा है...' : 'सुरक्षित करें (Save)'}</span>
+                <span>{isLoading ? 'Saving...' : 'Save Product'}</span>
               </button>
             </div>
 

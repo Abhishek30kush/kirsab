@@ -194,7 +194,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
     setCalcError(null);
     const qty = Number(purchasedQuantity) || 0;
     if (qty <= 0) {
-      setCalcError('कृपया मान्य खरीद मात्रा (Quantity > 0 kg) दर्ज करें।');
+      setCalcError('Please enter a valid purchase quantity (Quantity > 0 kg).');
       setLiveCalc(null);
       return;
     }
@@ -233,7 +233,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
         setLiveCalc(res.data);
       }
     } catch (err) {
-      setCalcError(err.message || 'मूल्य गणना में त्रुटि');
+      setCalcError(err.message || 'Pricing calculation error');
       setLiveCalc(null);
     } finally {
       setIsCalculating(false);
@@ -278,16 +278,16 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
   // Save calculation record
   const handleSaveCalculation = async (applyToLiveProduct = false) => {
     if (!liveCalc) {
-      alert('कृपया पहले मान्य गणना पूर्ण करें।');
+      alert('Please calculate price before saving.');
       return;
     }
 
     const currentProd = products.find(p => p.id === selectedProductId);
     const prodName = isManualProduct
-      ? manualProductName || 'अनाम सब्ज़ी (Custom)'
+      ? manualProductName || 'Custom Vegetable'
       : currentProd
       ? `${currentProd.nameHi} (${currentProd.nameEn})`
-      : 'अनाम सब्ज़ी';
+      : 'Unnamed Vegetable';
 
     const payload = {
       productId: isManualProduct ? null : selectedProductId || null,
@@ -335,7 +335,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
         }
       }
     } catch (err) {
-      alert(err.message || 'गणना सुरक्षित करने में त्रुटि');
+      alert(err.message || 'Failed to save calculation record');
     }
   };
 
@@ -380,7 +380,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
   const handleApplyDefaultMarginToAll = () => {
     const margin = Number(defaultBulkMargin) || 20;
     setBulkRows(prev => prev.map(row => ({ ...row, targetMargin: margin })));
-    showFeedback(`सभी पंक्तियों पर ${margin}% लक्ष्य मार्जिन लागू किया गया।`);
+    showFeedback(`Applied ${margin}% target margin to all rows.`);
   };
 
   // Bulk Apply Prices with Confirmation
@@ -390,7 +390,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
     );
 
     if (toUpdate.length === 0) {
-      alert('अपडेट करने हेतु कोई सब्ज़ी चयनित नहीं है।');
+      alert('No vegetables selected for update.');
       return;
     }
 
@@ -412,7 +412,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
         if (onPriceUpdated) onPriceUpdated();
       }
     } catch (err) {
-      alert(err.message || 'थोक मूल्य अपडेट करने में विफलता');
+      alert(err.message || 'Failed to bulk update prices');
     } finally {
       setIsBulkSaving(false);
     }
@@ -421,7 +421,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
   // Export to CSV
   const exportBulkToCSV = () => {
     if (bulkCalculatedResults.length === 0) {
-      alert('एक्सपोर्ट के लिए कोई डेटा नहीं है।');
+      alert('No data available to export.');
       return;
     }
 
@@ -511,13 +511,13 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
         <div>
           <div className="flex items-center gap-2 text-brand-dark mb-1">
             <Calculator className="w-6 h-6 text-brand-primary" />
-            <h2 className="text-xl font-black tracking-tight">सब्ज़ी भाव व मुनाफ़ा कैलकुलेटर</h2>
+            <h2 className="text-xl font-black tracking-tight">Vegetable Pricing & Profit Calculator</h2>
             <span className="text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full">
               KIRSAB Pricing Engine v2.0
             </span>
           </div>
           <p className="text-xs text-gray-500">
-            मंडी खरीद भाव, परिवहन, तुलाई-उतराई, छंटाई वेस्टेज एवं अतिरिक्त लागतों को जोड़कर सही विक्रय मूल्य एवं वास्तविक मुनाफ़ा तय करें।
+            Calculate accurate selling prices, account for procurement, transport, and sorting wastage, and maximize profit margins.
           </p>
         </div>
 
@@ -533,7 +533,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             }`}
           >
             <Scale className="w-3.5 h-3.5" />
-            <span>एकल सब्ज़ी कैलकुलेटर</span>
+            <span>Single Calculator</span>
           </button>
 
           <button
@@ -546,7 +546,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>थोक मूल्य कैलकुलेटर (Bulk)</span>
+            <span>Bulk Price Calculator</span>
           </button>
 
           <button
@@ -559,7 +559,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             }`}
           >
             <Calendar className="w-3.5 h-3.5" />
-            <span>गणना इतिहास व रिकॉर्ड</span>
+            <span>Calculation History</span>
           </button>
         </div>
       </div>
@@ -569,56 +569,56 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
           <div className="bg-white rounded-xl p-3.5 border border-gray-100 shadow-2xs">
             <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-              मूल्य निर्धारण स्थिति
+              Pricing Status
             </div>
             <div className="text-xl font-black text-brand-dark">
               {insights.totalWithPricing} <span className="text-xs font-normal text-gray-400">/ {insights.totalVegetables}</span>
             </div>
-            <div className="text-[10px] text-gray-400 mt-1">कुल सक्रिय सब्ज़ियां</div>
+            <div className="text-[10px] text-gray-400 mt-1">Configured Vegetables</div>
           </div>
 
           <div className="bg-white rounded-xl p-3.5 border border-red-100 shadow-2xs bg-gradient-to-br from-red-50/40 to-white">
             <div className="text-[11px] font-bold text-red-700 uppercase tracking-wider mb-1 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              लागत से कम मूल्य
+              Selling Below Cost
             </div>
             <div className="text-xl font-black text-red-600">
               {insights.belowCostCount}
             </div>
-            <div className="text-[10px] text-red-600/80 mt-1">नुकसान वाली सब्ज़ियां (Selling &lt; Cost)</div>
+            <div className="text-[10px] text-red-600/80 mt-1">Loss-making (Price &lt; Cost)</div>
           </div>
 
           <div className="bg-white rounded-xl p-3.5 border border-amber-100 shadow-2xs bg-gradient-to-br from-amber-50/40 to-white">
             <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-1 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-amber-500" />
-              लक्ष्य से कम मार्जिन
+              Below Target Margin
             </div>
             <div className="text-xl font-black text-amber-600">
               {insights.belowMarginCount}
             </div>
-            <div className="text-[10px] text-amber-700/80 mt-1">मार्जिन बढ़ाने की आवश्यकता</div>
+            <div className="text-[10px] text-amber-700/80 mt-1">Needs Margin Adjustment</div>
           </div>
 
           <div className="bg-white rounded-xl p-3.5 border border-emerald-100 shadow-2xs bg-gradient-to-br from-emerald-50/40 to-white">
             <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mb-1 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              लक्ष्य मार्जिन पूर्ण
+              Target Margin Achieved
             </div>
             <div className="text-xl font-black text-emerald-700">
               {insights.targetAchievedCount}
             </div>
-            <div className="text-[10px] text-emerald-700/80 mt-1">स्वस्थ लाभ स्थिति</div>
+            <div className="text-[10px] text-emerald-700/80 mt-1">Healthy Profitability</div>
           </div>
 
           <div className="bg-white rounded-xl p-3.5 border border-blue-100 shadow-2xs bg-gradient-to-br from-blue-50/40 to-white col-span-2 md:col-span-1">
             <div className="text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1">
-              अनुमानित संभावित सकल लाभ
+              Estimated Gross Profit
             </div>
             <div className="text-xl font-black text-blue-700">
               ₹{insights.potentialGrossProfitTotal.toLocaleString('en-IN')}
             </div>
             <div className="text-[9px] text-gray-400 mt-1 leading-tight">
-              वर्तमान बैच पर आधारित (बिक्री उपरांत वास्तविक)
+              Based on current batch volume estimates
             </div>
           </div>
         </div>
@@ -635,13 +635,13 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div className="bg-white rounded-2xl p-5 shadow-xs border border-gray-100">
               <h3 className="text-sm font-black text-brand-dark mb-3 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-brand-primary text-white text-[11px] flex items-center justify-center font-bold">1</span>
-                सब्ज़ी विवरण (Vegetable Information)
+                Vegetable Information
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    सब्ज़ी चुनें (Select from Store)
+                    Select Vegetable from Store
                   </label>
                   <select
                     value={isManualProduct ? '__manual__' : selectedProductId}
@@ -655,24 +655,24 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                     }}
                     className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all"
                   >
-                    <option value="">-- उपलब्ध सब्ज़ी चुनें --</option>
+                    <option value="">-- Select Configured Vegetable --</option>
                     {products.map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.nameHi} ({p.nameEn}) {p.price ? `— वर्तमान: ₹${p.price}` : '— (अनिर्धारित)'}
+                        {p.nameEn} ({p.nameHi}) {p.price ? `— Current: ₹${p.price}` : '— (Unset)'}
                       </option>
                     ))}
-                    <option value="__manual__">➕ अन्य / नई सब्ज़ी (Manual Entry)</option>
+                    <option value="__manual__">➕ Other / New Vegetable (Manual Entry)</option>
                   </select>
                 </div>
 
                 {isManualProduct && (
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">
-                      सब्ज़ी का नाम (Manual Entry)
+                      Vegetable Name (Manual Entry)
                     </label>
                     <input
                       type="text"
-                      placeholder="उदा. शिमला मिर्च (Capsicum)"
+                      placeholder="e.g. Capsicum / Green Peas"
                       value={manualProductName}
                       onChange={(e) => setManualProductName(e.target.value)}
                       className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
@@ -682,30 +682,30 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    इकाई (Unit)
+                    Package Unit
                   </label>
                   <select
                     value={unitType}
                     onChange={(e) => setUnitType(e.target.value)}
                     className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/50 focus:bg-white"
                   >
-                    <option value="1 kg">1 kg (किलोग्राम)</option>
-                    <option value="500 g">500 g (आधा किलो)</option>
-                    <option value="250 g">250 g (पाव भर)</option>
-                    <option value="1 bunch">1 bunch (गड्डी)</option>
-                    <option value="1 piece">1 piece (पीस / नग)</option>
-                    <option value="1 crate">1 crate (क्रेट)</option>
-                    <option value="1 bag">1 bag (बोरी / कट्टा)</option>
+                    <option value="1 kg">1 kg (Kilogram)</option>
+                    <option value="500 g">500 g (Half Kilogram)</option>
+                    <option value="250 g">250 g (Quarter Kilogram)</option>
+                    <option value="1 bunch">1 bunch (Bunch)</option>
+                    <option value="1 piece">1 piece (Single Item)</option>
+                    <option value="1 crate">1 crate (Crate)</option>
+                    <option value="1 bag">1 bag (Sack / Bag)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    सप्लायर / मंडी आढ़तिया (वैकल्पिक)
+                    Supplier / Mandi Trader (Optional)
                   </label>
                   <input
                     type="text"
-                    placeholder="उदा. मुंडेरा मंडी, प्रयागराज"
+                    placeholder="e.g. Mundera Mandi, Prayagraj"
                     value={supplierName}
                     onChange={(e) => setSupplierName(e.target.value)}
                     className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5"
@@ -714,7 +714,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    खरीद दिनांक (Purchase Date)
+                    Purchase Date
                   </label>
                   <input
                     type="date"
@@ -731,7 +731,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-black text-brand-dark flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-brand-primary text-white text-[11px] flex items-center justify-center font-bold">2</span>
-                  खरीद व आवक लागत (Mandi Purchase Information)
+                  Mandi Purchase & Inward Logistics
                 </h3>
 
                 {/* Toggle Input Mode */}
@@ -743,7 +743,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       inputMode === 'unit_price' ? 'bg-white text-brand-dark shadow-2xs' : 'text-gray-500'
                     }`}
                   >
-                    दर/किलो से (Per kg)
+                    By Rate / kg
                   </button>
                   <button
                     type="button"
@@ -752,7 +752,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       inputMode === 'invoice_total' ? 'bg-white text-brand-dark shadow-2xs' : 'text-gray-500'
                     }`}
                   >
-                    बिल राशि से (Invoice Total)
+                    By Invoice Total
                   </button>
                 </div>
               </div>
@@ -761,7 +761,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 {inputMode === 'unit_price' ? (
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">
-                      मंडी खरीद दर (₹ प्रति किलो) *
+                      Mandi Purchase Rate (₹/kg) *
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-xs">₹</span>
@@ -779,7 +779,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 ) : (
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">
-                      कुल इनवॉइस / बिल राशि (₹ Invoice Amount) *
+                      Total Invoice Amount (₹) *
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-xs">₹</span>
@@ -792,13 +792,13 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                         placeholder="2000"
                       />
                     </div>
-                    <span className="text-[10px] text-gray-400">दर स्वतः प्राप्त होगी (Invoice / Qty)</span>
+                    <span className="text-[10px] text-gray-400">Rate auto-calculated from Invoice / Qty</span>
                   </div>
                 )}
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    कुल खरीदी गई मात्रा (Total Qty in kg) *
+                    Total Purchased Quantity (kg) *
                   </label>
                   <div className="relative">
                     <input
@@ -816,7 +816,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    पल्लेदारी / तुलाई-उतराई (Loading/Unloading ₹)
+                    Loading / Unloading & Porter (₹)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-xs">₹</span>
@@ -833,7 +833,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    मंडी से गोदाम भाड़ा (Transportation ₹)
+                    Mandi to Warehouse Transport (₹)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-xs">₹</span>
@@ -850,7 +850,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    अन्य आवक खर्च (चुंगी / मंडी टैक्स / आढ़त आदि ₹)
+                    Other Inward / Mandi Cess & Commission (₹)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-xs">₹</span>
@@ -872,7 +872,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-black text-brand-dark flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-brand-primary text-white text-[11px] flex items-center justify-center font-bold">3</span>
-                  छंटाई वेस्टेज व बिक्री योग्य मात्रा (Wastage & Usable Qty)
+                  Sorting Wastage & Usable Stock
                 </h3>
 
                 <div className="flex items-center bg-gray-100 p-0.5 rounded-lg text-[10px] font-bold">
@@ -883,7 +883,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       wastageMode === 'percent' ? 'bg-white text-brand-dark shadow-2xs' : 'text-gray-500'
                     }`}
                   >
-                    प्रतिशत में (%)
+                    By Percentage (%)
                   </button>
                   <button
                     type="button"
@@ -892,7 +892,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       wastageMode === 'actual_kg' ? 'bg-white text-brand-dark shadow-2xs' : 'text-gray-500'
                     }`}
                   >
-                    किलो में (Actual kg)
+                    By Weight (Actual kg)
                   </button>
                 </div>
               </div>
@@ -901,7 +901,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 {wastageMode === 'percent' ? (
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">
-                      अनुमानित वेस्टेज प्रतिशत (Expected Wastage %)
+                      Expected Wastage Percentage (%)
                     </label>
                     <div className="relative">
                       <input
@@ -920,7 +920,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 ) : (
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">
-                      वास्तविक ख़राब / कटी-फटी मात्रा (Actual Wasted kg)
+                      Actual Wasted / Spoiled Stock (kg)
                     </label>
                     <div className="relative">
                       <input
@@ -939,13 +939,13 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div className="bg-amber-50/70 border border-amber-200/60 rounded-xl p-3 flex flex-col justify-center">
                   <div className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">
-                    बिक्री योग्य शुद्ध मात्रा (Saleable Usable Stock)
+                    Net Saleable Usable Stock
                   </div>
                   <div className="text-lg font-black text-amber-900 mt-0.5">
                     {liveCalc ? `${liveCalc.usableQuantity} kg` : '--'}
                   </div>
                   <div className="text-[10px] text-amber-700">
-                    वेस्टेज प्रभाव: +₹{liveCalc ? (liveCalc.effectivePurchaseCostPerKg - liveCalc.purchasePricePerKg).toFixed(2) : 0}/kg
+                    Wastage Cost Impact: +₹{liveCalc ? (liveCalc.effectivePurchaseCostPerKg - liveCalc.purchasePricePerKg).toFixed(2) : 0}/kg
                   </div>
                 </div>
               </div>
@@ -955,13 +955,13 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div className="bg-white rounded-2xl p-5 shadow-xs border border-gray-100">
               <h3 className="text-sm font-black text-brand-dark mb-3 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-brand-primary text-white text-[11px] flex items-center justify-center font-bold">4</span>
-                अतिरिक्त परिचालन व पैकेजिंग खर्च (Additional Costs)
+                Packaging & Operational Costs
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    पैकेजिंग थैली / ट्रे (₹/kg)
+                    Packaging Pouch / Tray (₹/kg)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-xs">₹</span>
@@ -979,7 +979,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    सॉर्टिंग व मजदूरी (Labour ₹)
+                    Sorting & Labour Cost (₹)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-xs">₹</span>
@@ -999,13 +999,13 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       onChange={(e) => setIsLaborPerKg(e.target.checked)}
                       className="rounded text-brand-primary"
                     />
-                    प्रति किलो मजदूरी है
+                    Labour rate is per kg
                   </label>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    बिजली व कोल्ड स्टोरेज (₹ Batch)
+                    Cold Storage & Electricity (₹ Batch)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-xs">₹</span>
@@ -1022,7 +1022,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    प्लेटफ़ॉर्म / संचालन (₹ Batch)
+                    Platform & Operational Overhead (₹ Batch)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-xs">₹</span>
@@ -1039,7 +1039,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    पेमेंट गेटवे शुल्क (% PG Fee)
+                    Payment Gateway Fee (% PG Fee)
                   </label>
                   <div className="relative">
                     <input
@@ -1058,16 +1058,16 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    डिलीवरी व्यवस्था (Delivery Cost)
+                    Delivery Cost Arrangement
                   </label>
                   <select
                     value={deliveryMode}
                     onChange={(e) => setDeliveryMode(e.target.value)}
                     className="w-full text-xs font-medium border border-gray-200 rounded-xl px-2.5 py-2.5 bg-gray-50/50"
                   >
-                    <option value="customer_paid">ग्राहक देता है (₹0 Store Cost)</option>
-                    <option value="free">किरसाब वहन करता है (Free)</option>
-                    <option value="subsidized">सब्सिडी युक्त (Partially Paid)</option>
+                    <option value="customer_paid">Customer Paid (₹0 Store Cost)</option>
+                    <option value="free">Store Absorbed / Free (Subsidized)</option>
+                    <option value="subsidized">Partially Subsidized</option>
                   </select>
                 </div>
               </div>
@@ -1075,7 +1075,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
               {(deliveryMode === 'free' || deliveryMode === 'subsidized') && (
                 <div className="mt-3 bg-blue-50/60 border border-blue-200/60 rounded-xl p-3">
                   <label className="block text-xs font-bold text-blue-900 mb-1">
-                    KIRSAB द्वारा वहन की जाने वाली डिलीवरी सब्सिडी (कुल ₹ इस लॉट पर)
+                    Delivery Subsidy Absorbed by KIRSAB (Total ₹ on lot)
                   </label>
                   <input
                     type="number"
@@ -1083,10 +1083,10 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                     value={deliverySubsidizedCost}
                     onChange={(e) => setDeliverySubsidizedCost(e.target.value)}
                     className="w-full sm:w-1/2 text-xs border border-blue-200 rounded-xl px-3 py-2 bg-white"
-                    placeholder="उदा. 40"
+                    placeholder="e.g. 40"
                   />
                   <p className="text-[10px] text-blue-700 mt-1">
-                    * मल्टी-प्रोडक्ट डिलीवरी में केवल आनुपातिक बिज़नेस सब्सिडी लागत शामिल की जाती है।
+                    * In multi-item deliveries, only proportional business delivery subsidy is factored in.
                   </p>
                 </div>
               )}
@@ -1096,28 +1096,28 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div className="bg-white rounded-2xl p-5 shadow-xs border border-gray-100">
               <h3 className="text-sm font-black text-brand-dark mb-3 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-brand-primary text-white text-[11px] flex items-center justify-center font-bold">5</span>
-                मुनाफ़ा नीति एवं राउंडिंग नियम (Profit & Pricing Mode)
+                Profit Strategy & Price Rounding
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    प्राइसिंग मोड (Pricing Mode)
+                    Pricing Strategy Mode
                   </label>
                   <select
                     value={pricingMode}
                     onChange={(e) => setPricingMode(e.target.value)}
                     className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/50"
                   >
-                    <option value="margin">मोड 1: ग्रॉस मार्जिन % (Gross Margin)</option>
-                    <option value="profit_per_kg">मोड 2: प्रति किलो मुनाफ़ा (₹/kg Markup)</option>
+                    <option value="margin">Mode 1: Gross Margin % (Recommended)</option>
+                    <option value="profit_per_kg">Mode 2: Profit per kg (₹/kg Markup)</option>
                   </select>
                 </div>
 
                 {pricingMode === 'margin' ? (
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">
-                      लक्ष्य ग्रॉस मार्जिन (Target Margin %) *
+                      Target Gross Margin (%) *
                     </label>
                     <div className="relative">
                       <input
@@ -1136,7 +1136,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 ) : (
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1">
-                      लक्ष्य लाभ (Target Profit ₹/kg) *
+                      Target Profit (₹/kg) *
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-brand-primary font-bold text-xs">₹</span>
@@ -1155,24 +1155,24 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    विक्रय मूल्य राउंडिंग (Rounding Rule)
+                    Selling Price Rounding Rule
                   </label>
                   <select
                     value={roundingRule}
                     onChange={(e) => setRoundingRule(e.target.value)}
                     className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/50"
                   >
-                    <option value="exact">यथार्थ दशमलव (₹32.76)</option>
-                    <option value="0.50">निकटतम 50 पैसे (₹32.50 / ₹33.00)</option>
-                    <option value="1.00">निकटतम पूर्ण रुपया (₹33.00)</option>
-                    <option value="ceil">ऊपरी पूर्ण रुपया (Ceil ₹33.00)</option>
+                    <option value="exact">Exact Decimal (₹32.76)</option>
+                    <option value="0.50">Nearest 50 Paise (₹32.50 / ₹33.00)</option>
+                    <option value="1.00">Nearest Rupee (₹33.00)</option>
+                    <option value="ceil">Ceiling / Next Rupee (₹33.00)</option>
                   </select>
                 </div>
               </div>
 
               <div className="mt-2 text-[10px] text-gray-400">
-                * <strong>ग्रॉस मार्जिन:</strong> विक्रय मूल्य में लाभ का हिस्सा (Profit ÷ Revenue × 100).
-                | <strong>मार्कअप:</strong> लागत पर जोड़ा गया अतिरिक्त लाभ (Profit ÷ Cost × 100).
+                * <strong>Gross Margin:</strong> Profit share of selling price (Profit ÷ Revenue × 100).
+                | <strong>Markup:</strong> Profit added on cost (Profit ÷ Cost × 100).
               </div>
             </div>
 
@@ -1180,10 +1180,10 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div className="bg-white rounded-2xl p-5 shadow-xs border border-gray-100">
               <h3 className="text-sm font-black text-brand-dark mb-1 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-brand-primary text-white text-[11px] flex items-center justify-center font-bold">6</span>
-                प्रतिस्पर्धी बाज़ार भाव तुलना (Competitor Benchmarking)
+                Competitor Market Benchmarking
               </h3>
               <p className="text-[11px] text-gray-400 mb-3">
-                ब्लिंकिट, ज़ेप्टो या स्थानीय मंडी भाव दर्ज करें। ग्राम पैक को ऑटोमैटिक ₹/kg में बदल दिया जाएगा।
+                Benchmark against Blinkit, Zepto, or local market. Gram packs are automatically normalized to ₹/kg.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1191,7 +1191,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                   <div key={comp.competitorName} className="p-3 bg-gray-50/70 border border-gray-200/60 rounded-xl space-y-2">
                     <div className="flex items-center justify-between text-xs font-bold text-brand-charcoal">
                       <span>{comp.competitorName}</span>
-                      <span className="text-[10px] text-gray-400">पिनकोड: {comp.cityPincode}</span>
+                      <span className="text-[10px] text-gray-400">Pincode: {comp.cityPincode}</span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
@@ -1200,7 +1200,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                           <span className="absolute left-2.5 top-2 text-gray-400 text-xs font-bold">₹</span>
                           <input
                             type="number"
-                            placeholder="भाव"
+                            placeholder="Price"
                             value={comp.packPrice}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -1249,7 +1249,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                     <TrendingUp className="w-5 h-5 text-brand-soft" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-white">मूल्य एवं मुनाफ़ा सारांश</h4>
+                    <h4 className="text-sm font-black text-white">Pricing & Profit Summary</h4>
                     <span className="text-[10px] text-white/70">Live Dynamic Calculation</span>
                   </div>
                 </div>
@@ -1270,7 +1270,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                   {/* Hero Metric: Recommended Selling Price */}
                   <div className="bg-white/10 backdrop-blur-xs rounded-xl p-4 border border-white/15 text-center">
                     <div className="text-[11px] uppercase tracking-wider text-white/80 font-bold mb-0.5">
-                      अनुशंसित विक्रय मूल्य (Recommended Selling Price)
+                      Recommended Selling Price
                     </div>
                     <div className="text-4xl font-black text-white tracking-tight flex items-center justify-center gap-1">
                       <span>₹{liveCalc.recommendedSellingPrice}</span>
@@ -1278,65 +1278,65 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                     </div>
 
                     <div className="flex items-center justify-center gap-3 mt-2 text-[11px] text-white/80">
-                      <span>यथार्थ: ₹{liveCalc.unroundedSellingPrice}</span>
+                      <span>Exact: ₹{liveCalc.unroundedSellingPrice}</span>
                       <span>•</span>
-                      <span>लागत (Break-even): ₹{liveCalc.breakEvenSellingPrice}</span>
+                      <span>Break-even: ₹{liveCalc.breakEvenSellingPrice}</span>
                     </div>
                   </div>
 
                   {/* Financial Metrics Grid */}
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-                      <div className="text-[10px] text-white/60 font-semibold uppercase">कुल खरीद लागत</div>
+                      <div className="text-[10px] text-white/60 font-semibold uppercase">Total Purchase Amount</div>
                       <div className="text-sm font-bold text-white mt-0.5">₹{liveCalc.purchaseAmount}</div>
                       <div className="text-[10px] text-white/50">{liveCalc.purchasedQuantity} kg @ ₹{liveCalc.purchasePricePerKg}</div>
                     </div>
 
                     <div className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-                      <div className="text-[10px] text-white/60 font-semibold uppercase">आवक व परिवहन खर्च</div>
+                      <div className="text-[10px] text-white/60 font-semibold uppercase">Inward Logistics Cost</div>
                       <div className="text-sm font-bold text-white mt-0.5">₹{liveCalc.totalProcurementExpenses}</div>
-                      <div className="text-[10px] text-white/50">भाड़ा, तुलाई व टैक्स</div>
+                      <div className="text-[10px] text-white/50">Freight, loading & cess</div>
                     </div>
 
                     <div className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-                      <div className="text-[10px] text-white/60 font-semibold uppercase">छंटाई वेस्टेज नुकसान</div>
+                      <div className="text-[10px] text-white/60 font-semibold uppercase">Sorting Wastage Loss</div>
                       <div className="text-sm font-bold text-amber-300 mt-0.5">₹{liveCalc.wastageCost}</div>
                       <div className="text-[10px] text-white/50">{liveCalc.wastedQuantity} kg ({liveCalc.wastagePercentage}%)</div>
                     </div>
 
                     <div className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-                      <div className="text-[10px] text-white/60 font-semibold uppercase">बिक्री योग्य प्रभावी दर</div>
+                      <div className="text-[10px] text-white/60 font-semibold uppercase">Effective Usable Cost</div>
                       <div className="text-sm font-bold text-white mt-0.5">₹{liveCalc.effectivePurchaseCostPerKg} / kg</div>
-                      <div className="text-[10px] text-white/50">वेस्टेज उपरांत वास्तविक खरीद</div>
+                      <div className="text-[10px] text-white/50">Purchase rate adjusted for waste</div>
                     </div>
 
                     <div className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-                      <div className="text-[10px] text-white/60 font-semibold uppercase">अतिरिक्त यूनिट खर्च</div>
+                      <div className="text-[10px] text-white/60 font-semibold uppercase">Additional Unit Cost</div>
                       <div className="text-sm font-bold text-white mt-0.5">₹{liveCalc.totalUnitAdditionalCost} / kg</div>
-                      <div className="text-[10px] text-white/50">थैली, मजदूरी व ओवरहेड</div>
+                      <div className="text-[10px] text-white/50">Packaging, labour & overhead</div>
                     </div>
 
                     <div className="bg-white/5 rounded-xl p-2.5 border border-white/10">
-                      <div className="text-[10px] text-white/60 font-semibold uppercase">कुल यूनिट लागत (Cost/kg)</div>
+                      <div className="text-[10px] text-white/60 font-semibold uppercase">Total Unit Cost (Break-even)</div>
                       <div className="text-sm font-bold text-emerald-300 mt-0.5">₹{liveCalc.totalUnitCost} / kg</div>
-                      <div className="text-[10px] text-white/50">पूर्ण वास्तविक लागत</div>
+                      <div className="text-[10px] text-white/50">All-inclusive landed cost</div>
                     </div>
                   </div>
 
                   {/* Profit & Margin Highlights */}
                   <div className="bg-emerald-950/60 rounded-xl p-3.5 border border-emerald-500/30 space-y-2">
                     <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="text-emerald-200">अपेक्षित प्रति किलो मुनाफ़ा:</span>
+                      <span className="text-emerald-200">Expected Profit per kg:</span>
                       <span className="text-base text-emerald-300 font-black">+₹{liveCalc.expectedProfitPerKg}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="text-emerald-200">ग्रॉस मार्जिन प्रतिशत (Gross Margin):</span>
+                      <span className="text-emerald-200">Gross Margin:</span>
                       <span className="text-base text-emerald-300 font-black">{liveCalc.grossMarginPercent}%</span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs font-bold pt-1 border-t border-emerald-500/20">
-                      <span className="text-emerald-200">पूरे बैच पर अनुमानित सकल लाभ:</span>
+                      <span className="text-emerald-200">Estimated Gross Profit on Batch:</span>
                       <span className="text-base text-white font-black">₹{liveCalc.expectedTotalGrossProfit}</span>
                     </div>
                   </div>
@@ -1345,7 +1345,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                   {liveCalc.competitorComparisons && liveCalc.competitorComparisons.length > 0 && (
                     <div className="bg-white/5 rounded-xl p-3 border border-white/10 space-y-2">
                       <div className="text-[10px] uppercase font-bold text-white/70">
-                        प्रतिस्पर्धी तुलना (₹ प्रति किलो दर)
+                        Competitor Comparison (₹/kg rate)
                       </div>
                       {liveCalc.competitorComparisons.map(comp => (
                         <div key={comp.competitorName} className="flex items-center justify-between text-xs">
@@ -1362,10 +1362,10 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                               }`}
                             >
                               {comp.status === 'cheaper'
-                                ? `किरसाब ₹${Math.abs(comp.diffRupees)} सस्ता`
+                                ? `KIRSAB ₹${Math.abs(comp.diffRupees)} Cheaper`
                                 : comp.status === 'more_expensive'
-                                ? `किरसाब ₹${comp.diffRupees} महंगा`
-                                : 'समान भाव'}
+                                ? `KIRSAB ₹${comp.diffRupees} Higher`
+                                : 'Equal Price'}
                             </span>
                           </div>
                         </div>
@@ -1381,7 +1381,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-white/15 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center justify-center gap-1.5"
                     >
                       <Save className="w-4 h-4" />
-                      <span>केवल गणना इतिहास सुरक्षित करें (Save History)</span>
+                      <span>Save to Calculation History</span>
                     </button>
 
                     <button
@@ -1391,11 +1391,11 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       className="w-full py-3 px-4 rounded-xl text-xs font-black bg-brand-primary hover:bg-emerald-600 text-white shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Store className="w-4 h-4" />
-                      <span>लाइव स्टोर पर यह भाव लागू करें (Update Product Price)</span>
+                      <span>Apply Price to Live Customer Store</span>
                     </button>
                     {!selectedProductId && !isManualProduct && (
                       <p className="text-[10px] text-center text-white/50">
-                        * लाइव स्टोर मूल्य बदलने हेतु ऊपर ड्रॉपडाउन से सब्ज़ी चुनें।
+                        * Select a configured vegetable in the dropdown above to push live.
                       </p>
                     )}
                   </div>
@@ -1403,7 +1403,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 </div>
               ) : (
                 <div className="py-8 text-center text-xs text-white/60">
-                  कृपया बाईं ओर खरीद व वेस्टेज विवरण दर्ज करें...
+                  Enter purchase quantity and procurement details to view live pricing calculation...
                 </div>
               )}
 
@@ -1422,17 +1422,17 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div>
               <h3 className="text-base font-black text-brand-dark flex items-center gap-2">
                 <Layers className="w-5 h-5 text-brand-primary" />
-                थोक मूल्य निर्धारण (Bulk Price Calculator)
+                Bulk Vegetable Pricing Calculator
               </h3>
               <p className="text-xs text-gray-500">
-                सभी सब्ज़ियों की खरीद दर, वेस्टेज एवं मार्जिन एक साथ देखें, त्वरित एडिट करें और सीधे स्टोर पर लागू करें।
+                Review and update purchase rates, wastage, and target margins across all vegetables simultaneously.
               </p>
             </div>
 
             {/* Quick Bulk Margin Applicator & Export */}
             <div className="flex flex-wrap items-center gap-2.5">
               <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl text-xs">
-                <span className="font-bold text-gray-700">डिफ़ॉल्ट मार्जिन:</span>
+                <span className="font-bold text-gray-700">Default Margin:</span>
                 <input
                   type="number"
                   min="5"
@@ -1447,7 +1447,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                   onClick={handleApplyDefaultMarginToAll}
                   className="ml-1 px-2 py-0.5 text-[11px] font-bold bg-brand-dark text-white rounded hover:bg-black transition-all"
                 >
-                  सभी पर लगाएं
+                  Apply to All
                 </button>
               </div>
 
@@ -1455,7 +1455,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 type="button"
                 onClick={exportBulkToCSV}
                 className="px-3 py-2 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all flex items-center gap-1.5"
-                title="CSV शीट में एक्सपोर्ट करें"
+                title="Export to CSV Spreadsheet"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>CSV Export</span>
@@ -1468,7 +1468,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 className="px-4 py-2 text-xs font-black text-white bg-brand-primary hover:bg-emerald-700 rounded-xl shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-40"
               >
                 <Save className="w-4 h-4" />
-                <span>चयनित भाव लागू करें ({selectedBulkIds.size})</span>
+                <span>Apply Selected Prices ({selectedBulkIds.size})</span>
               </button>
             </div>
           </div>
@@ -1479,7 +1479,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="सब्ज़ी का नाम खोजें (उदा. आलू, टमाटर)..."
+                placeholder="Search vegetables (e.g. Potato, Tomato)..."
                 value={bulkSearch}
                 onChange={(e) => setBulkSearch(e.target.value)}
                 className="w-full text-xs pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl"
@@ -1492,7 +1492,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 onChange={(e) => setBulkCategory(e.target.value)}
                 className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/50"
               >
-                <option value="all">सभी श्रेणियां (All Categories)</option>
+                <option value="all">All Categories</option>
                 {categories.map(c => (
                   <option key={c.id} value={c.id}>
                     {c.nameHi} ({c.nameEn})
@@ -1507,10 +1507,10 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 onChange={(e) => setBulkSort(e.target.value)}
                 className="w-full text-xs font-medium border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50/50"
               >
-                <option value="name">नाम अनुसार (A to Z)</option>
-                <option value="margin_desc">अधिकतम मार्जिन % (High to Low)</option>
-                <option value="margin_asc">न्यूनतम मार्जिन % (Low to High)</option>
-                <option value="price_desc">अधिकतम विक्रय मूल्य</option>
+                <option value="name">Name (A to Z)</option>
+                <option value="margin_desc">Highest Margin %</option>
+                <option value="margin_asc">Lowest Margin %</option>
+                <option value="price_desc">Highest Selling Price</option>
               </select>
             </div>
           </div>
@@ -1528,23 +1528,23 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       className="rounded text-brand-primary"
                     />
                   </th>
-                  <th className="p-3">सब्ज़ी का नाम</th>
-                  <th className="p-3">खरीद दर (₹/kg)</th>
-                  <th className="p-3">मात्रा (kg)</th>
-                  <th className="p-3">वेस्टेज %</th>
-                  <th className="p-3">यूनिट लागत (₹/kg)</th>
-                  <th className="p-3">मार्जिन %</th>
-                  <th className="p-3">नया भाव (₹)</th>
-                  <th className="p-3">वर्तमान भाव (₹)</th>
-                  <th className="p-3">मुनाफ़ा (₹/kg)</th>
-                  <th className="p-3">स्थिति</th>
+                  <th className="p-3">Vegetable</th>
+                  <th className="p-3">Purchase Rate (₹/kg)</th>
+                  <th className="p-3">Qty (kg)</th>
+                  <th className="p-3">Wastage %</th>
+                  <th className="p-3">Unit Cost (₹/kg)</th>
+                  <th className="p-3">Margin %</th>
+                  <th className="p-3">New Price (₹)</th>
+                  <th className="p-3">Current Price</th>
+                  <th className="p-3">Profit (₹/kg)</th>
+                  <th className="p-3">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredBulkResults.length === 0 ? (
                   <tr>
                     <td colSpan={11} className="p-8 text-center text-gray-400">
-                      कोई सब्ज़ी नहीं मिली।
+                      No vegetables found.
                     </td>
                   </tr>
                 ) : (
@@ -1625,7 +1625,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                         </td>
 
                         <td className="p-3 text-gray-500 font-semibold">
-                          {row.currentPrice ? `₹${row.currentPrice}` : <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">अनिर्धारित</span>}
+                          {row.currentPrice ? `₹${row.currentPrice}` : <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Unset</span>}
                         </td>
 
                         <td className="p-3 font-black text-emerald-700">
@@ -1636,24 +1636,24 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                           {row.pricingStatus === 'margin_achieved' && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              मार्जिन पूर्ण
+                              Target Margin
                             </span>
                           )}
                           {row.pricingStatus === 'below_margin' && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
                               <AlertTriangle className="w-3 h-3 text-amber-600" />
-                              कम मार्जिन
+                              Low Margin
                             </span>
                           )}
                           {row.pricingStatus === 'below_cost' && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
                               <AlertCircle className="w-3 h-3 text-red-600" />
-                              लागत से कम
+                              Below Cost
                             </span>
                           )}
                           {row.pricingStatus === 'unconfigured' && (
                             <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                              अनिर्धारित
+                              Unconfigured
                             </span>
                           )}
                         </td>
@@ -1675,10 +1675,10 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div>
               <h3 className="text-base font-black text-brand-dark flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-brand-primary" />
-                मूल्य निर्धारण इतिहास (Past Calculations & Records)
+                Pricing Calculation History & Records
               </h3>
               <p className="text-xs text-gray-500">
-                अतीत में सहेजी गई खरीद लागत, वेस्टेज, एवं लागू किए गए विक्रय मूल्यों का विवरण।
+                Audit trail of past procurement costs, wastage logs, and applied selling prices.
               </p>
             </div>
 
@@ -1686,7 +1686,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
               type="button"
               onClick={fetchHistory}
               className="p-2 text-gray-500 hover:text-brand-dark rounded-xl hover:bg-gray-100 transition-all"
-              title="रिफ्रेश करें"
+              title="Refresh History"
             >
               <RefreshCw className={`w-4 h-4 ${isLoadingHistory ? 'animate-spin' : ''}`} />
             </button>
@@ -1696,22 +1696,22 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <table className="w-full text-left text-xs">
               <thead className="bg-gray-50 text-gray-600 uppercase font-black text-[10px] tracking-wider border-b border-gray-200">
                 <tr>
-                  <th className="p-3">दिनांक</th>
-                  <th className="p-3">सब्ज़ी</th>
-                  <th className="p-3">खरीद दर</th>
-                  <th className="p-3">मात्रा व वेस्टेज</th>
-                  <th className="p-3">यूनिट लागत</th>
-                  <th className="p-3">अनुशंसित भाव</th>
-                  <th className="p-3">मार्जिन %</th>
-                  <th className="p-3">प्रतिस्पर्धी भाव</th>
-                  <th className="p-3">स्टोर पर लागू</th>
+                  <th className="p-3">Date</th>
+                  <th className="p-3">Vegetable</th>
+                  <th className="p-3">Purchase Rate</th>
+                  <th className="p-3">Qty & Wastage</th>
+                  <th className="p-3">Unit Cost</th>
+                  <th className="p-3">Rec. Price</th>
+                  <th className="p-3">Margin %</th>
+                  <th className="p-3">Competitor Benchmark</th>
+                  <th className="p-3">Applied to Store</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {pricingHistory.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="p-8 text-center text-gray-400">
-                      कोई इतिहास रिकॉर्ड उपलब्ध नहीं है।
+                      No past calculation records found.
                     </td>
                   </tr>
                 ) : (
@@ -1734,7 +1734,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       </td>
 
                       <td className="p-3 text-gray-600">
-                        {record.purchasedQuantity} kg ({record.wastagePercentage}% वेस्टेज)
+                        {record.purchasedQuantity} kg ({record.wastagePercentage}% waste)
                       </td>
 
                       <td className="p-3 font-semibold text-gray-700">
@@ -1767,10 +1767,10 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                         {record.appliedToProduct ? (
                           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1 w-max">
                             <Check className="w-3 h-3 text-emerald-600" />
-                            लागू किया गया
+                            Applied Live
                           </span>
                         ) : (
-                          <span className="text-[10px] text-gray-400">केवल सहेजा गया</span>
+                          <span className="text-[10px] text-gray-400">Saved Record</span>
                         )}
                       </td>
                     </tr>
@@ -1791,31 +1791,31 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 <Store className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-base font-black">लाइव स्टोर विक्रय मूल्य अपडेट की पुष्टि</h4>
-                <p className="text-xs text-gray-500">कृपया नया मूल्य जांच कर पुष्टि करें।</p>
+                <h4 className="text-base font-black">Confirm Live Store Price Update</h4>
+                <p className="text-xs text-gray-500">Please verify and confirm the new selling price before pushing live.</p>
               </div>
             </div>
 
             {confirmModal.type === 'single' && confirmModal.data && (
               <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200 text-xs space-y-2">
                 <div className="flex justify-between font-bold text-brand-dark">
-                  <span>सब्ज़ी:</span>
-                  <span>{products.find(p => p.id === selectedProductId)?.nameHi || 'चयनित सब्ज़ी'}</span>
+                  <span>Vegetable:</span>
+                  <span>{products.find(p => p.id === selectedProductId)?.nameEn || 'Selected Vegetable'}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>वर्तमान विक्रय मूल्य:</span>
+                  <span>Current Selling Price:</span>
                   <span className="font-bold">
                     {products.find(p => p.id === selectedProductId)?.price
                       ? `₹${products.find(p => p.id === selectedProductId).price}`
-                      : 'अनिर्धारित'}
+                      : 'Unconfigured'}
                   </span>
                 </div>
                 <div className="flex justify-between text-brand-primary text-sm font-black pt-1 border-t border-gray-200">
-                  <span>नया लाइव विक्रय मूल्य:</span>
+                  <span>New Live Selling Price:</span>
                   <span>₹{confirmModal.data.recommendedSellingPrice} / {unitType}</span>
                 </div>
                 <div className="flex justify-between text-[11px] text-emerald-700 font-bold">
-                  <span>अनुमानित ग्रॉस मार्जिन:</span>
+                  <span>Estimated Gross Margin:</span>
                   <span>{confirmModal.data.grossMarginPercent}% (+₹{confirmModal.data.expectedProfitPerKg}/kg)</span>
                 </div>
               </div>
@@ -1824,16 +1824,16 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             {confirmModal.type === 'bulk' && (
               <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200 text-xs space-y-1.5">
                 <div className="font-bold text-brand-dark">
-                  कुल {selectedBulkIds.size} सब्ज़ियों के मूल्य एक साथ स्टोर पर अपडेट होंगे।
+                  A total of {selectedBulkIds.size} vegetable prices will be updated simultaneously on the live store.
                 </div>
                 <p className="text-[11px] text-gray-500">
-                  यह क्रिया तुरंत ग्राहकों के लिए नया भाव सक्रिय कर देगी।
+                  This action immediately makes the new prices active for customer ordering.
                 </p>
               </div>
             )}
 
             <p className="text-[11px] text-gray-500 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
-              ⚠️ पुष्टि करने के बाद ग्राहकों को तुरंत यही नया भाव दिखेगा।
+              ⚠️ Once confirmed, customers will immediately see and order at these new selling prices.
             </p>
 
             <div className="flex items-center gap-3 pt-2">
@@ -1842,7 +1842,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 onClick={() => setConfirmModal({ isOpen: false, data: null, type: 'single' })}
                 className="flex-1 py-2.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
               >
-                रद्द करें
+                Cancel
               </button>
 
               <button
@@ -1856,7 +1856,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                 }}
                 className="flex-1 py-2.5 text-xs font-black text-white bg-brand-primary hover:bg-emerald-700 rounded-xl shadow-md transition-all"
               >
-                हाँ, लाइव मूल्य अपडेट करें
+                Yes, Update Live Store Prices
               </button>
             </div>
           </div>

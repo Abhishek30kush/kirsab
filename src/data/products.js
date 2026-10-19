@@ -1,19 +1,5 @@
-/**
- * ==============================================================================
- * KIRSAB PRODUCT CATALOGUE (किरसाब सब्ज़ी सूची)
- * ==============================================================================
- * 
- * प्रिय स्टोर मालिक (Dear Store Owner),
- * सब्ज़ियों के ताज़ा भाव (Price), उपलब्धता (In Stock / Out of Stock), और इकाइयां (Unit)
- * आप नीचे दी गई सूची में सीधे बदल सकते हैं।
- * 
- * नियम (Rules):
- * 1. price: अगर आपको किसी सब्ज़ी का भाव तय नहीं है, तो price: null रखें।
- *    वेबसाइट पर वह सब्ज़ी "भाव जल्द उपलब्ध" (Price to be updated) दिखेगी और कोई ग्राहक उसे बिना भाव के ऑर्डर नहीं कर पाएगा।
- *    कभी भी शून्य (0) न डालें।
- * 2. inStock: अगर मंडी में सब्ज़ी उपलब्ध नहीं है तो inStock: false कर दें।
- * 3. unit: '1 kg', '500 g', '250 g', '100 g', '1 bunch (गड्डी)', या 'piece (पीस)'।
- */
+// KIRSAB Hyperlocal Store Vegetable Products Catalog
+// Real-world, locally available everyday vegetables for Shervani Legacy, Prayagraj
 
 export const PRODUCT_CATEGORIES = [
   { id: 'all', nameHi: 'सभी सब्ज़ियाँ', nameEn: 'All Vegetables' },
@@ -36,6 +22,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'रोज़ाना ज़रूरी',
     description: 'साफ-सुथरे, ठोस व छंटाई किए हुए ताज़े आलू। रोज़ की सब्ज़ी के लिए उत्तम।',
+    descriptionEn: 'Clean, firm, and carefully sorted fresh potatoes. Ideal for everyday home cooking and curries.',
     image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🥔',
   },
@@ -52,6 +39,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'ताज़ा स्टॉक',
     description: 'लाल, सूखा और कुरकुरा प्याज़, दाल-तड़के और सलाद के लिए।',
+    descriptionEn: 'Crisp, dry, and pungent red onions. Essential for tempering, gravies, and fresh salads.',
     image: 'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🧅',
   },
@@ -68,6 +56,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'देसी ताज़ा',
     description: 'रसीले लाल और टाइट टमाटर, तरीदार सब्ज़ी और ग्रेवी के लिए बेहतरीन।',
+    descriptionEn: 'Juicy, firm, and farm-fresh red tomatoes. Perfect for rich curries, gravies, and salads.',
     image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🍅',
   },
@@ -84,6 +73,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'हल्की व सेहतमंद',
     description: 'मुलायम, कच्ची व हरी लौकी, जूस एवं दाल-लौकी के लिए उपयुक्त।',
+    descriptionEn: 'Tender, fresh, and light bottle gourd (lauki). Great for healthy morning juices and daily curries.',
     image: 'https://images.unsplash.com/photo-1601493700631-2b16ec4b4716?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🥒',
   },
@@ -100,6 +90,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'चमकदार व ताज़ा',
     description: 'बिना कीड़े का ताजा बैंगन, चोखा और कलौंजी बनाने हेतु आदर्श।',
+    descriptionEn: 'Glossy, fresh, and seedless brinjals. Perfect for roasting (baingan bharta) and traditional curries.',
     image: 'https://images.unsplash.com/photo-1628773822503-930a84d9f04e?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🍆',
   },
@@ -116,6 +107,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'कुरकुरी व ताज़ी',
     description: 'छोटी, हरी और आसानी से टूटने वाली ताज़ी भिंडी।',
+    descriptionEn: 'Crisp, bright green, and tender okra (bhindi). Ideal for crunchy stir-fries and dry subzi.',
     image: 'https://images.unsplash.com/photo-1525607551316-4a8e16d1f9ba?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🌱',
   },
@@ -132,6 +124,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'पैक पत्ता गोभी',
     description: 'कसा हुआ ताजा हरा बंदगोभी, सलाद और भुर्जी के लिए।',
+    descriptionEn: 'Fresh, tightly layered green cabbage. Excellent for crunchy salads, parathas, and stir-fries.',
     image: 'https://images.unsplash.com/photo-1594282486552-05b4d80fbb9f?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🥬',
   },
@@ -148,6 +141,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'साफ सफेद फूल',
     description: 'सफेद, टाइट और बिना दाग वाला ताज़ा फूलगोभी।',
+    descriptionEn: 'Spotless white, firm cauliflower florets. Ideal for aloo-gobhi, parathas, and vegetable pulav.',
     image: 'https://images.unsplash.com/photo-1568584711075-3d021a7c3ca3?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🥦',
   },
@@ -164,6 +158,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'तीखी व ताज़ी',
     description: 'तेज हरी, बिना डंठल टूटी हुई तीखी मिर्च।',
+    descriptionEn: 'Spicy, crisp, and fresh green chillies. Brings authentic aroma, kick, and flavour to every dish.',
     image: 'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🌶️',
   },
@@ -180,6 +175,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'मसालेदार चाय हेतु',
     description: 'साफ रेशेदार सूखा अदरक, चाय व सब्ज़ी के तड़के के लिए।',
+    descriptionEn: 'Clean, aromatic, and fibrous fresh ginger. Essential for your morning masala chai and tempering.',
     image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🫚',
   },
@@ -196,6 +192,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'मोटी कलियाँ',
     description: 'सफेद, सूखे और बड़े दानों वाला ताज़ा लहसुन।',
+    descriptionEn: 'Plump, dry, and aromatic garlic cloves. Packed with intense natural aroma and daily immunity benefits.',
     image: 'https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🧄',
   },
@@ -212,6 +209,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'खुशबूदार ताज़ा',
     description: 'हरी पत्तियों वाला महकदार देसी धनिया, गार्निश व चटनी के लिए।',
+    descriptionEn: 'Freshly picked, aromatic green coriander bunch. Perfect for fragrant garnishing and spicy chutneys.',
     image: 'https://images.unsplash.com/photo-1596097635121-14b63b7a0c19?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🌿',
   },
@@ -230,6 +228,7 @@ export const INITIAL_PRODUCTS = [
     inStock: true,
     badge: 'मूल्य प्रतीक्षारत',
     description: 'रसीला पीला कागज़ी नींबू। दैनिक मंडी भाव पुष्टि के बाद उपलब्ध होगा।',
+    descriptionEn: 'Juicy, thin-skinned yellow lemons loaded with maximum natural vitamin C citrus juice.',
     image: 'https://images.unsplash.com/photo-1587496679742-bad502958fbe?auto=format&fit=crop&w=600&q=80',
     fallbackEmoji: '🍋',
   },

@@ -3,6 +3,22 @@ import { translations } from '../translations/translations';
 
 const LanguageContext = createContext();
 
+const BADGE_MAP_EN = {
+  'रोज़ाना ज़रूरी': 'Daily Essential',
+  'ताज़ा स्टॉक': 'Fresh Stock',
+  'देसी ताज़ा': 'Farm Fresh',
+  'हल्की व सेहतमंद': 'Healthy & Light',
+  'चमकदार व ताज़ा': 'Glossy & Fresh',
+  'कुरकुरी व ताज़ी': 'Crisp & Fresh',
+  'पैक पत्ता गोभी': 'Packed Cabbage',
+  'साफ सफेद फूल': 'Clean White Floret',
+  'तीखी व ताज़ी': 'Spicy & Fresh',
+  'मसालेदार चाय हेतु': 'For Masala Chai',
+  'मोटी कलियाँ': 'Plump Cloves',
+  'खुशबूदार ताज़ा': 'Aromatic & Fresh',
+  'मूल्य प्रतीक्षारत': 'Price Pending',
+};
+
 export const LanguageProvider = ({ children }) => {
   // Read saved preference or default to English ('en')
   const [language, setLanguageState] = useState(() => {
@@ -43,24 +59,41 @@ export const LanguageProvider = ({ children }) => {
     return fallback || key;
   };
 
-  // Helper to format product titles according to active language
+  // Helper to format product titles, descriptions and badges according to active language
   const tProduct = (product) => {
-    if (!product) return { name: '', altName: '', unit: '', unitShort: '' };
+    if (!product) return { name: '', altName: '', unit: '', unitShort: '', description: '', badge: '' };
     
     if (language === 'en') {
+      const slug = product.id?.toLowerCase() || '';
+      const nameSlug = product.nameEn?.toLowerCase()?.replace(/\s+/g, '-') || '';
+      const enDesc = product.descriptionEn ||
+        translations.en?.productDescriptions?.[product.id] ||
+        translations.en?.productDescriptions?.[slug] ||
+        translations.en?.productDescriptions?.[nameSlug] ||
+        product.description;
+
+      const enBadge = product.badge
+        ? (BADGE_MAP_EN[product.badge] || product.badge)
+        : '';
+
       return {
         name: product.nameEn || product.nameHi,
         altName: product.nameHi,
         unit: product.unit || product.unitHindi,
         unitShort: product.unitShort || product.unit,
+        description: enDesc,
+        badge: enBadge,
       };
     }
 
+    const hiDesc = product.description || translations.hi?.productDescriptions?.[product.id];
     return {
       name: product.nameHi || product.nameEn,
       altName: product.nameEn,
       unit: product.unitHindi || product.unit,
       unitShort: product.unitShort ? `प्रति ${product.unitShort}` : (product.unitHindi || product.unit),
+      description: hiDesc,
+      badge: product.badge || '',
     };
   };
 

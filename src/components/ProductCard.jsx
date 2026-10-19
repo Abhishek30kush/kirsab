@@ -46,7 +46,7 @@ export const ProductCard = ({ product }) => {
         {product.badge && isConfigured && !isOutOfStock && (
           <div className="absolute top-2.5 left-2.5 bg-brand-dark/90 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            {product.badge}
+            {prodInfo.badge || product.badge}
           </div>
         )}
 
@@ -92,7 +92,7 @@ export const ProductCard = ({ product }) => {
 
           {/* Description */}
           <p className="mt-2 text-xs text-brand-muted line-clamp-2 leading-relaxed">
-            {product.description}
+            {prodInfo.description || product.description}
           </p>
         </div>
 

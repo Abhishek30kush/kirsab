@@ -59,6 +59,23 @@ export const translations = {
     addBtn: 'जोड़ें',
     perPrefix: 'प्रति',
 
+    // Product Descriptions
+    productDescriptions: {
+      'potato': 'साफ-सुथरे, ठोस व छंटाई किए हुए ताज़े आलू। रोज़ की सब्ज़ी के लिए उत्तम।',
+      'onion': 'लाल, सूखा और कुरकुरा प्याज़, दाल-तड़के और सलाद के लिए।',
+      'tomato': 'रसीले लाल और टाइट टमाटर, तरीदार सब्ज़ी और ग्रेवी के लिए बेहतरीन।',
+      'bottle-gourd': 'मुलायम, कच्ची व हरी लौकी, जूस एवं दाल-लौकी के लिए उपयुक्त।',
+      'brinjal': 'बिना कीड़े का ताजा बैंगन, चोखा और कलौंजी बनाने हेतु आदर्श।',
+      'okra': 'छोटी, हरी और आसानी से टूटने वाली ताज़ी भिंडी।',
+      'cabbage': 'कसा हुआ ताजा हरा बंदगोभी, सलाद और भुर्जी के लिए।',
+      'cauliflower': 'सफेद, टाइट और बिना दाग वाला ताज़ा फूलगोभी।',
+      'green-chilli': 'तेज हरी, बिना डंठल टूटी हुई तीखी मिर्च।',
+      'ginger': 'साफ रेशेदार सूखा अदरक, चाय व सब्ज़ी के तड़के के लिए।',
+      'garlic': 'सफेद, सूखे और बड़े दानों वाला ताज़ा लहसुन।',
+      'coriander': 'हरी पत्तियों वाला महकदार देसी धनिया, गार्निश व चटनी के लिए।',
+      'lemon': 'पतले छिलके वाले रसदार रसीले पीले नींबू।',
+    },
+
     // How It Works
     howItWorksBadge: 'ऑर्डर प्रक्रिया (Simple 3 Steps)',
     howItWorksHeading: 'किरसाब से ऑर्डर करना कितना आसान है?',
@@ -217,6 +234,23 @@ export const translations = {
     priceSoonBtn: 'Price Soon',
     addBtn: 'Add',
     perPrefix: 'per',
+
+    // Product Descriptions (English)
+    productDescriptions: {
+      'potato': 'Clean, firm, and carefully sorted fresh potatoes. Ideal for everyday home cooking and curries.',
+      'onion': 'Crisp, dry, and pungent red onions. Essential for tempering, gravies, and fresh salads.',
+      'tomato': 'Juicy, firm, and farm-fresh red tomatoes. Perfect for rich curries, gravies, and salads.',
+      'bottle-gourd': 'Tender, fresh, and light bottle gourd (lauki). Great for healthy morning juices and daily curries.',
+      'brinjal': 'Glossy, fresh, and seedless brinjals. Perfect for roasting (baingan bharta) and traditional curries.',
+      'okra': 'Crisp, bright green, and tender okra (bhindi). Ideal for crunchy stir-fries and dry subzi.',
+      'cabbage': 'Fresh, tightly layered green cabbage. Excellent for crunchy salads, parathas, and stir-fries.',
+      'cauliflower': 'Spotless white, firm cauliflower florets. Ideal for aloo-gobhi, parathas, and vegetable pulav.',
+      'green-chilli': 'Spicy, crisp, and fresh green chillies. Brings authentic aroma, kick, and flavour to every dish.',
+      'ginger': 'Clean, aromatic, and fibrous fresh ginger. Essential for your morning masala chai and tempering.',
+      'garlic': 'Plump, dry, and aromatic garlic cloves. Packed with intense natural aroma and daily immunity benefits.',
+      'coriander': 'Freshly picked, aromatic green coriander bunch. Perfect for fragrant garnishing and spicy chutneys.',
+      'lemon': 'Juicy, thin-skinned yellow lemons loaded with maximum natural vitamin C citrus juice.',
+    },
 
     // How It Works
     howItWorksBadge: 'Simple 3 Steps',
