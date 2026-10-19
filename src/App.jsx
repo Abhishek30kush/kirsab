@@ -89,12 +89,14 @@ export function App() {
     checkAuth();
   }, []);
 
-  // Handle URL hash or query param: #admin or ?admin=true
+  // Handle URL path (/admin), hash (#admin), or query param (?admin=true)
   useEffect(() => {
     const handleUrlCheck = () => {
       const isHashAdmin = window.location.hash === '#admin';
       const isQueryAdmin = new URLSearchParams(window.location.search).get('admin') === 'true';
-      if (isHashAdmin || isQueryAdmin) {
+      const isPathAdmin = window.location.pathname.replace(/\/+$/, '') === '/admin';
+
+      if (isHashAdmin || isQueryAdmin || isPathAdmin) {
         const token = getAdminToken();
         if (token && adminUser) {
           setIsAdminView(true);
@@ -105,7 +107,11 @@ export function App() {
     };
     handleUrlCheck();
     window.addEventListener('hashchange', handleUrlCheck);
-    return () => window.removeEventListener('hashchange', handleUrlCheck);
+    window.addEventListener('popstate', handleUrlCheck);
+    return () => {
+      window.removeEventListener('hashchange', handleUrlCheck);
+      window.removeEventListener('popstate', handleUrlCheck);
+    };
   }, [adminUser]);
 
   const handleAdminTrigger = () => {
@@ -127,7 +133,12 @@ export function App() {
         {isAdminView && adminUser ? (
           <AdminDashboard
             adminUser={adminUser}
-            onExitAdmin={() => setIsAdminView(false)}
+            onExitAdmin={() => {
+              setIsAdminView(false);
+              if (window.location.pathname.replace(/\/+$/, '') === '/admin') {
+                window.history.pushState({}, '', '/');
+              }
+            }}
           />
         ) : (
           <MainStoreContent
