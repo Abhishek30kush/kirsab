@@ -23,14 +23,25 @@ import {
   ToggleLeft,
   ToggleRight,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  Calculator
 } from 'lucide-react';
 import { api, setAdminToken } from '../../utils/api';
 import { ProductEditModal } from './ProductEditModal';
+import { PricingCalculator } from './PricingCalculator';
 import { formatCurrency } from '../../utils/currency';
 
 export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => {
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'products' | 'orders' | 'settings'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.replace(/\/+$/, '');
+      const hash = window.location.hash;
+      if (path === '/admin/pricing-calculator' || hash === '#pricing-calculator') {
+        return 'pricing-calculator';
+      }
+    }
+    return 'overview';
+  }); // 'overview' | 'products' | 'pricing-calculator' | 'orders' | 'settings'
 
   // Dashboard Stats
   const [stats, setStats] = useState(null);
@@ -308,6 +319,22 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   {products.length}
                 </span>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('pricing-calculator');
+                if (typeof window !== 'undefined') {
+                  window.history.pushState({}, '', '/admin/pricing-calculator');
+                }
+              }}
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'pricing-calculator' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
+              }`}
+            >
+              <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+              <span>भाव व मुनाफ़ा कैलकुलेटर (Pricing)</span>
             </button>
 
             <button
@@ -939,6 +966,20 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
             </form>
 
           </div>
+        )}
+
+        {/* 5. VEGETABLE PRICING & PROFIT CALCULATOR TAB */}
+        {activeTab === 'pricing-calculator' && (
+          <PricingCalculator
+            products={products}
+            categories={categories}
+            onPriceUpdated={() => {
+              fetchProducts();
+              fetchStats();
+              if (onCatalogChanged) onCatalogChanged();
+            }}
+            showFeedback={showFeedback}
+          />
         )}
 
       </main>

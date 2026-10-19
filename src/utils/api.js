@@ -95,4 +95,32 @@ export const api = {
     method: 'PUT',
     body: JSON.stringify(settings),
   }),
+
+  // Admin Vegetable Pricing Calculator
+  calculatePricing: (payload) => apiRequest('/pricing/calculate', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  savePricingCalculation: (payload) => apiRequest('/pricing/save', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getPricingOverview: () => apiRequest('/pricing/overview'),
+  getPricingHistory: (productId = 'all') => apiRequest(`/pricing/history/${productId}`),
+  applyProductPrice: (payload) => apiRequest('/pricing/apply-price', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  bulkCalculatePricing: (payload) => apiRequest('/pricing/bulk-calculate', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  bulkApplyPricing: (payload) => apiRequest('/pricing/bulk-apply', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  saveCompetitorPrice: (payload) => apiRequest('/pricing/competitors', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
 };

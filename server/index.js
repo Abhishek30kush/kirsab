@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import pricingRoutes from './routes/pricingRoutes.js';
 import { generalApiLimiter } from './middleware/rateLimiter.js';
 
 dotenv.config();
@@ -80,6 +81,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/pricing', pricingRoutes);
 
 // 404 Handler for undefined API routes
 app.use('/api/*', (req, res) => {

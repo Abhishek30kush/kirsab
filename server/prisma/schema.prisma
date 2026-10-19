@@ -48,12 +48,99 @@ model Product {
   description   String?
   image         String
   fallbackEmoji String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  orderItems    OrderItem[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  orderItems          OrderItem[]
+  pricingCalculations PricingCalculation[]
+  competitorPrices    CompetitorPrice[]
 
   @@index([categoryId])
   @@index([inStock, isConfigured, isActive])
+}
+
+model PricingCalculation {
+  id                         String   @id @default(cuid())
+  productId                  String?
+  product                    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName                String
+  supplierName               String?
+  purchaseDate               DateTime @default(now())
+  unit                       String   @default("1 kg")
+
+  // Purchase inputs
+  purchasePricePerKg         Float
+  purchasedQuantity          Float
+  invoiceAmount              Float?
+  loadingUnloadingCost       Float    @default(0)
+  transportCost              Float    @default(0)
+  otherProcurementCost       Float    @default(0)
+
+  // Wastage inputs
+  wastagePercentage          Float    @default(0)
+  actualWastageQty           Float?
+
+  // Additional costs
+  packagingCostPerKg         Float    @default(0)
+  packagingCostPerOrder      Float    @default(0)
+  avgOrderSizeKg             Float    @default(2.5)
+  handlingLabourCost         Float    @default(0)
+  isLaborPerKg               Boolean  @default(false)
+  storageElectricityCost     Float    @default(0)
+  platformOperatingCost      Float    @default(0)
+  gatewayFeePercent          Float    @default(0)
+  otherExpenses              Float    @default(0)
+  deliveryMode               String   @default("free") // free, customer_paid, subsidized
+  deliverySubsidizedCost     Float    @default(0)
+
+  // Pricing mode & targets
+  pricingMode                String   @default("margin") // margin, profit_per_kg
+  targetMargin               Float    @default(20)
+  targetProfitPerKg          Float    @default(0)
+  roundingRule               String   @default("exact")
+
+  // Calculated outputs
+  totalProcurementCost       Float
+  usableQuantity             Float
+  effectivePurchaseCostPerKg Float
+  totalBatchCost             Float
+  totalUnitCost              Float
+  unroundedSellingPrice      Float
+  recommendedSellingPrice    Float
+  expectedProfitPerKg        Float
+  expectedGrossProfit        Float
+  grossMarginPercent         Float
+  breakEvenSellingPrice      Float
+
+  appliedToProduct           Boolean  @default(false)
+  appliedAt                  DateTime?
+  notes                      String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+  competitorPrices           CompetitorPrice[]
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model CompetitorPrice {
+  id                   String              @id @default(cuid())
+  productId            String?
+  product              Product?            @relation(fields: [productId], references: [id], onDelete: SetNull)
+  pricingCalculationId String?
+  pricingCalculation   PricingCalculation? @relation(fields: [pricingCalculationId], references: [id], onDelete: Cascade)
+  competitorName       String              // Blinkit, Zepto, Flipkart Minutes, Local Mandi / Other
+  packQuantity         Float               @default(1)
+  packUnit             String              @default("kg")
+  packPrice            Float
+  normalizedPricePerKg Float
+  cityPincode          String              @default("211011")
+  notes                String?
+  checkedAt            DateTime            @default(now())
+  createdAt            DateTime            @default(now())
+
+  @@index([productId])
+  @@index([competitorName])
+  @@index([checkedAt])
 }
 
 model StoreSettings {

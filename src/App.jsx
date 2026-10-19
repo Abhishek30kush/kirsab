@@ -94,7 +94,7 @@ export function App() {
     const handleUrlCheck = () => {
       const isHashAdmin = window.location.hash === '#admin';
       const isQueryAdmin = new URLSearchParams(window.location.search).get('admin') === 'true';
-      const isPathAdmin = window.location.pathname.replace(/\/+$/, '') === '/admin';
+      const isPathAdmin = window.location.pathname.startsWith('/admin');
 
       if (isHashAdmin || isQueryAdmin || isPathAdmin) {
         const token = getAdminToken();
@@ -135,7 +135,7 @@ export function App() {
             adminUser={adminUser}
             onExitAdmin={() => {
               setIsAdminView(false);
-              if (window.location.pathname.replace(/\/+$/, '') === '/admin') {
+              if (window.location.pathname.startsWith('/admin')) {
                 window.history.pushState({}, '', '/');
               }
             }}
