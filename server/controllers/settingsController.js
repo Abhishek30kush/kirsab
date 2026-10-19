@@ -16,7 +16,7 @@ export const getOrCreateSettings = async () => {
         brandNameHindi: 'किरसाब',
         tagline: 'सब्ज़ी | किराना | घर तक',
         taglineEnglish: 'Vegetables | Grocery | Direct to your Doorstep',
-        whatsappNumber: 'REPLACE_WITH_BUSINESS_NUMBER',
+        whatsappNumber: '918808481400',
         serviceAreaPrimary: 'Shervani Legacy',
         serviceAreaCity: 'Prayagraj',
         serviceAreaState: 'Uttar Pradesh',

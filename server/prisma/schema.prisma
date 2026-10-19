@@ -62,7 +62,7 @@ model StoreSettings {
   brandNameHindi         String   @default("किरसाब")
   tagline                String   @default("सब्ज़ी | किराना | घर तक")
   taglineEnglish         String   @default("Vegetables | Grocery | Direct to your Doorstep")
-  whatsappNumber         String   @default("REPLACE_WITH_BUSINESS_NUMBER")
+  whatsappNumber         String   @default("918808481400")
   serviceAreaPrimary     String   @default("Shervani Legacy")
   serviceAreaCity        String   @default("Prayagraj")
   serviceAreaState       String   @default("Uttar Pradesh")

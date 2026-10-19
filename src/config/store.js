@@ -21,8 +21,8 @@ export const STORE_CONFIG = {
   taglineEnglish: 'Vegetables | Grocery | Direct to your Doorstep',
 
   // IMPORTANT: Replace this placeholder with the business WhatsApp number (with 91 country code, no +)
-  // उदाहरण: '919876543210'
-  whatsappNumber: 'REPLACE_WITH_BUSINESS_NUMBER',
+  // उदाहरण: '918808481400'
+  whatsappNumber: '918808481400',
 
   // Primary Service Area (डिलीवरी क्षेत्र)
   serviceArea: {
