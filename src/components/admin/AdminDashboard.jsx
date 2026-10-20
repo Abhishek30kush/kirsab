@@ -922,7 +922,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   />
                 </div>
                 <span className="text-[10px] text-brand-muted mt-1 block">
-                  Write 12 digits without '+' or spaces (e.g. 918808481400).
+                  Write 12 digits without '+' or spaces (e.g. 918858922873).
                 </span>
               </div>
 
