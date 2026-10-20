@@ -5,6 +5,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ||
     ? DEFAULT_PROD_API 
     : 'http://localhost:5000/api');
 
+export const SOCKET_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+
 /**
  * Helper to get stored admin auth token
  */
@@ -53,6 +55,7 @@ export const api = {
   // Public
   getProducts: () => apiRequest('/products'),
   getSettings: () => apiRequest('/settings'),
+  getPublicOrderStats: () => apiRequest('/orders/public-stats'),
   createOrder: (payload) => apiRequest('/orders', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -82,12 +85,15 @@ export const api = {
     method: 'DELETE',
   }),
 
-  // Admin Orders
+  // Admin Orders & Analytics
   getAdminOrders: (params = '') => apiRequest(`/orders/admin${params}`),
   getOrderStats: () => apiRequest('/orders/admin/stats'),
-  updateOrderStatus: (id, status) => apiRequest(`/orders/admin/${id}/status`, {
+  getOrderAnalytics: () => apiRequest('/orders/admin/analytics'),
+  getLiveOrders: (params = '') => apiRequest(`/orders/admin/live${params}`),
+  getOrderHistory: (id) => apiRequest(`/orders/admin/${id}/history`),
+  updateOrderStatus: (id, status, notes = '') => apiRequest(`/orders/admin/${id}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, notes }),
   }),
 
   // Admin Settings

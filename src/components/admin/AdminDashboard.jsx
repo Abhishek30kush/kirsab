@@ -24,11 +24,13 @@ import {
   ToggleRight,
   ShieldCheck,
   RefreshCw,
-  Calculator
+  Calculator,
+  Activity
 } from 'lucide-react';
 import { api, setAdminToken } from '../../utils/api';
 import { ProductEditModal } from './ProductEditModal';
 import { PricingCalculator } from './PricingCalculator';
+import { OrderAnalyticsLive } from './OrderAnalyticsLive';
 import { formatCurrency } from '../../utils/currency';
 
 export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => {
@@ -39,9 +41,12 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
       if (path === '/admin/pricing-calculator' || hash === '#pricing-calculator') {
         return 'pricing-calculator';
       }
+      if (path === '/admin/order-analytics' || hash === '#order-analytics' || path === '/admin/live-orders') {
+        return 'order-analytics';
+      }
     }
     return 'overview';
-  }); // 'overview' | 'products' | 'pricing-calculator' | 'orders' | 'settings'
+  }); // 'overview' | 'products' | 'pricing-calculator' | 'order-analytics' | 'orders' | 'settings'
 
   // Dashboard Stats
   const [stats, setStats] = useState(null);
@@ -339,6 +344,25 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
 
             <button
               type="button"
+              onClick={() => {
+                setActiveTab('order-analytics');
+                if (typeof window !== 'undefined') {
+                  window.history.pushState({}, '', '/admin/order-analytics');
+                }
+              }}
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'order-analytics' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-blue-400" />
+              <span>Order Analytics & Live</span>
+              {stats?.pendingOrders > 0 && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              )}
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab('orders')}
               className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
                 activeTab === 'orders' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
@@ -495,6 +519,21 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   <Calculator className="w-5 h-5 text-brand-fresh mb-2" />
                   <span className="font-bold text-sm block">Vegetable Pricing Calculator</span>
                   <span className="text-xs text-brand-muted">Calculate selling price, wastage & margin</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('order-analytics');
+                    if (typeof window !== 'undefined') {
+                      window.history.pushState({}, '', '/admin/order-analytics');
+                    }
+                  }}
+                  className="p-4 rounded-2xl bg-blue-50 hover:bg-blue-100/70 border border-blue-200 text-left transition-all"
+                >
+                  <Activity className="w-5 h-5 text-blue-600 mb-2" />
+                  <span className="font-bold text-sm block">Live Order Monitoring</span>
+                  <span className="text-xs text-brand-muted">Real-time orders, analytics & live counter</span>
                 </button>
               </div>
             </div>
@@ -983,6 +1022,14 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
               fetchStats();
               if (onCatalogChanged) onCatalogChanged();
             }}
+            showFeedback={showFeedback}
+          />
+        )}
+
+        {/* 6. ORDER ANALYTICS & LIVE MONITORING TAB */}
+        {activeTab === 'order-analytics' && (
+          <OrderAnalyticsLive
+            adminUser={adminUser}
             showFeedback={showFeedback}
           />
         )}

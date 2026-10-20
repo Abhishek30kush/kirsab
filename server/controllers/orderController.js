@@ -2,6 +2,16 @@ import { prisma } from '../config/db.js';
 import { generateOrderNumber } from '../utils/orderId.js';
 import { calculateOrderTotals } from '../utils/pricing.js';
 import { getOrCreateSettings } from './settingsController.js';
+import {
+  calculateAuthoritativeStats,
+  getPublicAggregateStats,
+  getBusinessDayRange,
+  VALID_STATUS_TRANSITIONS,
+} from '../utils/analytics.js';
+import {
+  broadcastOrderCreated,
+  broadcastOrderStatusUpdated,
+} from '../socket.js';
 
 /**
  * Public: Place a new order with atomic PostgreSQL transaction & master price validation
@@ -79,7 +89,7 @@ export const createOrder = async (req, res) => {
 
     const orderNumber = generateOrderNumber();
 
-    // Atomic transaction in PostgreSQL to save Order and immutable OrderItem snapshots
+    // Atomic transaction in PostgreSQL to save Order, immutable OrderItem snapshots, and initial history record
     const createdOrder = await prisma.$transaction(async (tx) => {
       const order = await tx.order.create({
         data: {
@@ -107,13 +117,27 @@ export const createOrder = async (req, res) => {
               lineTotal: item.lineTotal,
             })),
           },
+          statusHistory: {
+            create: {
+              previousStatus: null,
+              newStatus: 'pending',
+              changedBy: 'customer',
+              notes: 'Initial order placement by customer',
+            },
+          },
         },
         include: {
           items: true,
+          statusHistory: true,
         },
       });
 
       return order;
+    });
+
+    // Real-time broadcast after transaction successfully commits
+    broadcastOrderCreated(createdOrder).catch(err => {
+      console.error('Real-time order creation broadcast error:', err);
     });
 
     // Format WhatsApp confirmation text for the customer
@@ -226,14 +250,19 @@ export const getOrdersAdmin = async (req, res) => {
 };
 
 /**
- * Admin: Get single order by ID
+ * Admin: Get single order by ID with items and status audit history
  */
 export const getOrderByIdAdmin = async (req, res) => {
   try {
     const { id } = req.params;
     const order = await prisma.order.findUnique({
       where: { id },
-      include: { items: true },
+      include: {
+        items: true,
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
 
     if (!order) {
@@ -254,17 +283,19 @@ export const getOrderByIdAdmin = async (req, res) => {
 };
 
 /**
- * Admin: Update order status
+ * Admin: Update order status with lifecycle validation, audit history & real-time broadcast
  */
 export const updateOrderStatusAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, notes, force = false } = req.body;
 
     const validStatuses = [
       'pending',
       'confirmed',
+      'preparing',
       'packed',
+      'ready_for_dispatch',
       'out_for_delivery',
       'delivered',
       'cancelled',
@@ -277,34 +308,80 @@ export const updateOrderStatusAdmin = async (req, res) => {
       });
     }
 
-    const updated = await prisma.order.update({
+    const currentOrder = await prisma.order.findUnique({
       where: { id },
-      data: { status },
       include: { items: true },
+    });
+
+    if (!currentOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'ऑर्डर नहीं मिला (Order not found)',
+      });
+    }
+
+    // Validate lifecycle transition (unless forced by admin)
+    if (!force && currentOrder.status !== status) {
+      const allowedNext = VALID_STATUS_TRANSITIONS[currentOrder.status] || [];
+      if (!allowedNext.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `अमान्य स्थिति परिवर्तन: '${currentOrder.status}' से '${status}' में नहीं बदला जा सकता। मान्य स्थितियां: ${allowedNext.join(', ')}`,
+        });
+      }
+    }
+
+    // Execute status change and history creation in an atomic transaction
+    const { updatedOrder, historyEntry } = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.update({
+        where: { id },
+        data: { status },
+        include: { items: true },
+      });
+
+      const history = await tx.orderStatusHistory.create({
+        data: {
+          orderId: id,
+          previousStatus: currentOrder.status,
+          newStatus: status,
+          changedBy: req.user?.email || 'admin',
+          notes: notes ? notes.trim() : null,
+        },
+      });
+
+      return { updatedOrder: order, historyEntry: history };
+    });
+
+    // Real-time broadcast after successful database transaction
+    broadcastOrderStatusUpdated(updatedOrder, historyEntry).catch(err => {
+      console.error('Real-time status update broadcast error:', err);
     });
 
     // Generate WhatsApp customer update template
     const statusHindiMap = {
       pending: 'स्वीकृति प्रतीक्षारत (Pending)',
       confirmed: 'स्वीकृत हो चुका है (Confirmed)',
+      preparing: 'तैयार किया जा रहा है (Preparing)',
       packed: 'पैक हो गया है (Packed)',
+      ready_for_dispatch: 'डिस्पैच हेतु तैयार (Ready for Dispatch)',
       out_for_delivery: 'डिलीवरी के लिए निकल चुका है (Out for Delivery)',
       delivered: 'सफलतापूर्वक डिलीवर हो गया है (Delivered)',
       cancelled: 'रद्द कर दिया गया है (Cancelled)',
     };
 
-    const customerUpdateMessage = `नमस्ते ${updated.customerName} जी,\n` +
-      `आपके KIRSAB ऑर्डर *#${updated.orderNumber}* की स्थिति अपडेट होकर *${statusHindiMap[status] || status}* हो गई है।\n` +
-      `कुल राशि: ₹${updated.finalTotal} | स्लॉट: ${updated.deliverySlot}\n` +
+    const customerUpdateMessage = `नमस्ते ${updatedOrder.customerName} जी,\n` +
+      `आपके KIRSAB ऑर्डर *#${updatedOrder.orderNumber}* की स्थिति अपडेट होकर *${statusHindiMap[status] || status}* हो गई है।\n` +
+      `कुल राशि: ₹${updatedOrder.finalTotal} | स्लॉट: ${updatedOrder.deliverySlot}\n` +
       `धन्यवाद, KIRSAB (शेरवानी लेगेसी, प्रयागराज)`;
 
-    const customerPhoneClean = updated.customerPhone.replace(/[^0-9]/g, '');
+    const customerPhoneClean = updatedOrder.customerPhone.replace(/[^0-9]/g, '');
     const notifyWhatsAppUrl = `https://wa.me/91${customerPhoneClean}?text=${encodeURIComponent(customerUpdateMessage)}`;
 
     return res.json({
       success: true,
-      message: `ऑर्डर स्थिति बदलकर '${status}' कर दी गई है`,
-      data: updated,
+      message: `ऑर्डर स्थिति बदलकर '${statusHindiMap[status] || status}' कर दी गई है`,
+      data: updatedOrder,
+      history: historyEntry,
       notifyWhatsAppUrl,
     });
   } catch (error) {
@@ -318,52 +395,220 @@ export const updateOrderStatusAdmin = async (req, res) => {
 };
 
 /**
- * Admin: Daily sales summary & dashboard statistics
+ * Admin: Permanent, authoritative order analytics
+ * GET /api/orders/admin/analytics
+ */
+export const getOrderAnalyticsAdmin = async (req, res) => {
+  try {
+    const stats = await calculateAuthoritativeStats();
+    return res.json({
+      success: true,
+      stats,
+    });
+  } catch (error) {
+    console.error('Order analytics fetch error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'एनालिटिक्स लोड करने में त्रुटि (Failed to load order analytics)',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Admin: Live Orders Monitoring with filtering, searching, and pagination
+ * GET /api/orders/admin/live
+ */
+export const getLiveOrdersAdmin = async (req, res) => {
+  try {
+    const { status, date, search, page = 1, limit = 25 } = req.query;
+    const where = {};
+
+    if (status && status !== 'all') {
+      if (status === 'preparing') {
+        where.status = { in: ['preparing', 'packed'] };
+      } else if (status === 'active') {
+        where.status = {
+          in: ['pending', 'confirmed', 'preparing', 'packed', 'ready_for_dispatch', 'out_for_delivery'],
+        };
+      } else {
+        where.status = status;
+      }
+    }
+
+    if (date) {
+      const { startOfToday } = getBusinessDayRange();
+      if (date === 'today') {
+        where.createdAt = { gte: startOfToday };
+      } else if (date === '7days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        where.createdAt = { gte: d };
+      } else if (date === '30days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        where.createdAt = { gte: d };
+      }
+    }
+
+    if (search && search.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { orderNumber: { contains: q, mode: 'insensitive' } },
+        { customerName: { contains: q, mode: 'insensitive' } },
+        { customerPhone: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    const take = Math.min(Math.max(1, Number(limit) || 25), 100);
+    const skip = (Math.max(1, Number(page) || 1) - 1) * take;
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: {
+          items: true,
+          statusHistory: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    const formattedOrders = orders.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      customerName: o.customerName,
+      customerPhone: o.customerPhone,
+      address: o.address,
+      landmark: o.landmark,
+      deliverySlot: o.deliverySlot,
+      instructions: o.instructions,
+      itemCount: o.items.reduce((sum, item) => sum + item.quantity, 0),
+      subtotal: o.subtotal,
+      deliveryFee: o.deliveryFee,
+      finalTotal: o.finalTotal,
+      status: o.status,
+      paymentMethod: o.paymentMethod,
+      paymentStatus: o.paymentStatus,
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
+      lastStatusUpdate: o.statusHistory[0]?.createdAt || o.updatedAt,
+      items: o.items,
+    }));
+
+    return res.json({
+      success: true,
+      data: formattedOrders,
+      pagination: {
+        total,
+        page: Number(page) || 1,
+        limit: take,
+        totalPages: Math.ceil(total / take),
+      },
+    });
+  } catch (error) {
+    console.error('Live orders fetch error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'लाइव ऑर्डर्स लोड करने में त्रुटि (Failed to fetch live orders)',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Admin: Get order status audit history
+ * GET /api/orders/admin/:id/history
+ */
+export const getOrderStatusHistoryAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        orderNumber: true,
+        customerName: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'ऑर्डर नहीं मिला (Order not found)',
+      });
+    }
+
+    const history = await prisma.orderStatusHistory.findMany({
+      where: { orderId: id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json({
+      success: true,
+      order,
+      history,
+    });
+  } catch (error) {
+    console.error('Order history fetch error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'ऑर्डर इतिहास लोड करने में त्रुटि (Failed to fetch order history)',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Public: Aggregate live order counter (Strictly privacy safe, zero PII, zero private data)
+ * GET /api/orders/public-stats
+ */
+export const getPublicOrderStats = async (req, res) => {
+  try {
+    const stats = await calculateAuthoritativeStats();
+    return res.json({
+      success: true,
+      stats: getPublicAggregateStats(stats),
+    });
+  } catch (error) {
+    console.error('Public stats error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'सांख्यिकी लोड करने में त्रुटि',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Admin: Daily sales summary & dashboard statistics (Backward compatibility for existing Overview tab)
  */
 export const getDailySalesStatsAdmin = async (req, res) => {
   try {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const [
-      totalOrders,
-      todayOrders,
-      pendingOrders,
-      deliveredOrders,
-      allDelivered,
-      todayDelivered,
-      productsCount,
-    ] = await Promise.all([
-      prisma.order.count(),
-      prisma.order.count({ where: { createdAt: { gte: startOfToday } } }),
-      prisma.order.count({ where: { status: 'pending' } }),
-      prisma.order.count({ where: { status: 'delivered' } }),
-      prisma.order.findMany({
-        where: { status: { not: 'cancelled' } },
-        select: { finalTotal: true },
-      }),
-      prisma.order.findMany({
-        where: {
-          status: { not: 'cancelled' },
-          createdAt: { gte: startOfToday },
-        },
-        select: { finalTotal: true },
-      }),
+    const [stats, productsCount] = await Promise.all([
+      calculateAuthoritativeStats(),
       prisma.product.count({ where: { isActive: true } }),
     ]);
-
-    const totalRevenue = allDelivered.reduce((sum, o) => sum + o.finalTotal, 0);
-    const todayRevenue = todayDelivered.reduce((sum, o) => sum + o.finalTotal, 0);
 
     return res.json({
       success: true,
       stats: {
-        totalOrders,
-        todayOrders,
-        pendingOrders,
-        deliveredOrders,
-        totalRevenue: Number(totalRevenue.toFixed(2)),
-        todayRevenue: Number(todayRevenue.toFixed(2)),
+        totalOrders: stats.totalOrders,
+        todayOrders: stats.todayOrders,
+        pendingOrders: stats.pendingOrders,
+        deliveredOrders: stats.completedOrders,
+        totalRevenue: stats.totalRevenue,
+        todayRevenue: stats.todayRevenue,
         activeProductsCount: productsCount,
       },
     });

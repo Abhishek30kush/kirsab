@@ -6,6 +6,7 @@ import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ServiceAreaNotice } from './components/ServiceAreaNotice';
 import { ProductSection } from './components/ProductSection';
+import { LiveOrderCounter } from './components/LiveOrderCounter';
 import { HowItWorks } from './components/HowItWorks';
 import { FaqSection } from './components/FaqSection';
 import { Footer } from './components/Footer';
@@ -39,6 +40,11 @@ function MainStoreContent({ onOpenAdmin, isAdminLoggedIn }) {
       <main className="flex-1">
         {/* Hero Section */}
         <Hero onOrderClick={scrollToCatalogue} />
+
+        {/* Public Live Order Counter Widget */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-6 relative z-10">
+          <LiveOrderCounter />
+        </div>
 
         {/* Service Area & Slot Timings Notice */}
         <ServiceAreaNotice />
