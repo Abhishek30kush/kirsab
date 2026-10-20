@@ -23,7 +23,8 @@ import {
   Layers,
   ChevronRight,
   Info,
-  Scale
+  Scale,
+  Clock
 } from 'lucide-react';
 import { api } from '../../utils/api';
 import { formatCurrency } from '../../utils/currency';
