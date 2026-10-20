@@ -334,7 +334,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
               }`}
             >
               <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Pricing Calculator</span>
+              <span>Vegetable Pricing Calculator</span>
             </button>
 
             <button
@@ -484,11 +484,16 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
 
                 <button
                   type="button"
-                  onClick={() => setActiveTab('pricing-calculator')}
+                  onClick={() => {
+                    setActiveTab('pricing-calculator');
+                    if (typeof window !== 'undefined') {
+                      window.history.pushState({}, '', '/admin/pricing-calculator');
+                    }
+                  }}
                   className="p-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 text-left transition-all"
                 >
                   <Calculator className="w-5 h-5 text-brand-fresh mb-2" />
-                  <span className="font-bold text-sm block">Pricing Calculator</span>
+                  <span className="font-bold text-sm block">Vegetable Pricing Calculator</span>
                   <span className="text-xs text-brand-muted">Calculate selling price, wastage & margin</span>
                 </button>
               </div>

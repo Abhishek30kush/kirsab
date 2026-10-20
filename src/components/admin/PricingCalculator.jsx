@@ -429,33 +429,45 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
       'Product ID',
       'Hindi Name',
       'English Name',
+      'Category',
       'Mandi Price (₹/kg)',
       'Purchased Qty (kg)',
       'Wastage %',
-      'Effective Cost (₹/kg)',
+      'Transportation Cost (₹)',
+      'Packaging & Other Costs (₹/kg)',
       'Total Unit Cost (₹/kg)',
       'Target Margin %',
-      'Recommended Price (₹)',
-      'Current Price (₹)',
+      'Recommended Selling Price (₹)',
+      'Current Selling Price (₹)',
       'Expected Profit (₹/kg)',
+      'Profit Margin %',
+      'Competitor Price (₹/kg)',
       'Pricing Status',
     ];
 
-    const rows = bulkCalculatedResults.map(r => [
-      `"${r.productId}"`,
-      `"${r.productNameHi || ''}"`,
-      `"${r.productNameEn || ''}"`,
-      r.purchasePricePerKg || 0,
-      r.purchasedQuantity || 0,
-      r.wastagePercentage || 0,
-      r.effectivePurchaseCostPerKg || 0,
-      r.totalUnitCost || 0,
-      r.targetMargin || 0,
-      r.recommendedSellingPrice || 0,
-      r.currentPrice || '',
-      r.expectedProfitPerKg || 0,
-      `"${r.pricingStatus || ''}"`,
-    ]);
+    const rows = bulkCalculatedResults.map(r => {
+      const cat = categories.find(c => c.id === r.categoryId)?.nameEn || r.categoryId || '';
+      const bRow = bulkRows.find(b => b.productId === r.productId);
+      return [
+        `"${r.productId}"`,
+        `"${r.productNameHi || ''}"`,
+        `"${r.productNameEn || ''}"`,
+        `"${cat}"`,
+        r.purchasePricePerKg || 0,
+        r.purchasedQuantity || 0,
+        r.wastagePercentage || 0,
+        bRow?.transportCost || 0,
+        bRow?.packagingCostPerKg || 0,
+        r.totalUnitCost || 0,
+        r.targetMargin || 0,
+        r.recommendedSellingPrice || 0,
+        r.currentPrice || '',
+        r.expectedProfitPerKg || 0,
+        r.grossMarginPercent || 0,
+        bRow?.competitorPrice || r.competitorPrice || '',
+        `"${r.pricingStatus || ''}"`,
+      ];
+    });
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -566,10 +578,10 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
       {/* Section 6: Dashboard Insights Cards */}
       {insights && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <div className="bg-white rounded-xl p-3.5 border border-gray-100 shadow-2xs">
             <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-              Pricing Status
+              Pricing Data
             </div>
             <div className="text-xl font-black text-brand-dark">
               {insights.totalWithPricing} <span className="text-xs font-normal text-gray-400">/ {insights.totalVegetables}</span>
@@ -577,10 +589,10 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div className="text-[10px] text-gray-400 mt-1">Configured Vegetables</div>
           </div>
 
-          <div className="bg-white rounded-xl p-3.5 border border-red-100 shadow-2xs bg-gradient-to-br from-red-50/40 to-white">
+          <div className="bg-white rounded-xl p-3.5 border border-red-200 shadow-2xs bg-gradient-to-br from-red-50/50 to-white">
             <div className="text-[11px] font-bold text-red-700 uppercase tracking-wider mb-1 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              Selling Below Cost
+              Price Below Cost
             </div>
             <div className="text-xl font-black text-red-600">
               {insights.belowCostCount}
@@ -588,7 +600,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div className="text-[10px] text-red-600/80 mt-1">Loss-making (Price &lt; Cost)</div>
           </div>
 
-          <div className="bg-white rounded-xl p-3.5 border border-amber-100 shadow-2xs bg-gradient-to-br from-amber-50/40 to-white">
+          <div className="bg-white rounded-xl p-3.5 border border-amber-200 shadow-2xs bg-gradient-to-br from-amber-50/50 to-white">
             <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-1 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-amber-500" />
               Below Target Margin
@@ -599,10 +611,10 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div className="text-[10px] text-amber-700/80 mt-1">Needs Margin Adjustment</div>
           </div>
 
-          <div className="bg-white rounded-xl p-3.5 border border-emerald-100 shadow-2xs bg-gradient-to-br from-emerald-50/40 to-white">
+          <div className="bg-white rounded-xl p-3.5 border border-emerald-200 shadow-2xs bg-gradient-to-br from-emerald-50/50 to-white">
             <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mb-1 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Target Margin Achieved
+              Target Achieved
             </div>
             <div className="text-xl font-black text-emerald-700">
               {insights.targetAchievedCount}
@@ -610,15 +622,26 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
             <div className="text-[10px] text-emerald-700/80 mt-1">Healthy Profitability</div>
           </div>
 
-          <div className="bg-white rounded-xl p-3.5 border border-blue-100 shadow-2xs bg-gradient-to-br from-blue-50/40 to-white col-span-2 md:col-span-1">
+          <div className="bg-white rounded-xl p-3.5 border border-orange-200 shadow-2xs bg-gradient-to-br from-orange-50/40 to-white">
+            <div className="text-[11px] font-bold text-orange-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <Clock className="w-3 h-3 text-orange-500" />
+              Outdated Prices
+            </div>
+            <div className="text-xl font-black text-orange-600">
+              {insights.outdatedCount}
+            </div>
+            <div className="text-[10px] text-orange-700/80 mt-1">&gt; 3 days old or unset</div>
+          </div>
+
+          <div className="bg-white rounded-xl p-3.5 border border-blue-200 shadow-2xs bg-gradient-to-br from-blue-50/50 to-white col-span-2 sm:col-span-1">
             <div className="text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1">
-              Estimated Gross Profit
+              Potential Gross Profit
             </div>
             <div className="text-xl font-black text-blue-700">
               ₹{insights.potentialGrossProfitTotal.toLocaleString('en-IN')}
             </div>
-            <div className="text-[9px] text-gray-400 mt-1 leading-tight">
-              Based on current batch volume estimates
+            <div className="text-[9px] text-gray-500 mt-1 leading-tight">
+              Estimated on batch volume (not realized)
             </div>
           </div>
         </div>
@@ -1517,7 +1540,7 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
           {/* Bulk Table */}
           <div className="overflow-x-auto border border-gray-200 rounded-2xl">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs whitespace-nowrap">
               <thead className="bg-gray-50 text-gray-600 uppercase font-black text-[10px] tracking-wider border-b border-gray-200">
                 <tr>
                   <th className="p-3 w-10 text-center">
@@ -1528,28 +1551,37 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                       className="rounded text-brand-primary"
                     />
                   </th>
-                  <th className="p-3">Vegetable</th>
-                  <th className="p-3">Purchase Rate (₹/kg)</th>
-                  <th className="p-3">Qty (kg)</th>
-                  <th className="p-3">Wastage %</th>
-                  <th className="p-3">Unit Cost (₹/kg)</th>
-                  <th className="p-3">Margin %</th>
-                  <th className="p-3">New Price (₹)</th>
-                  <th className="p-3">Current Price</th>
-                  <th className="p-3">Profit (₹/kg)</th>
-                  <th className="p-3">Status</th>
+                  <th className="p-3 min-w-[130px]">Vegetable Name</th>
+                  <th className="p-3 min-w-[100px]">Category</th>
+                  <th className="p-3 w-24">Mandi Price (₹/kg)</th>
+                  <th className="p-3 w-20">Qty (kg)</th>
+                  <th className="p-3 w-20">Wastage %</th>
+                  <th className="p-3 w-20">Transport (₹)</th>
+                  <th className="p-3 w-20">Packaging (₹/kg)</th>
+                  <th className="p-3 min-w-[85px]">Unit Cost (₹/kg)</th>
+                  <th className="p-3 w-20">Target Margin %</th>
+                  <th className="p-3 min-w-[100px]">Rec. Selling Price</th>
+                  <th className="p-3 min-w-[90px]">Current Price</th>
+                  <th className="p-3 min-w-[90px]">Profit (₹/kg)</th>
+                  <th className="p-3 min-w-[80px]">Profit Margin %</th>
+                  <th className="p-3 w-24">Competitor (₹/kg)</th>
+                  <th className="p-3 min-w-[110px]">Pricing Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredBulkResults.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="p-8 text-center text-gray-400">
+                    <td colSpan={16} className="p-8 text-center text-gray-400">
                       No vegetables found.
                     </td>
                   </tr>
                 ) : (
                   filteredBulkResults.map(row => {
                     const isSelected = selectedBulkIds.has(row.productId);
+                    const bRow = bulkRows.find(r => r.productId === row.productId);
+                    const catObj = categories.find(c => c.id === row.categoryId);
+                    const catName = catObj?.nameHi ? `${catObj.nameHi} (${catObj.nameEn})` : catObj?.nameEn || row.categoryId || 'General';
+
                     return (
                       <tr
                         key={row.productId}
@@ -1571,35 +1603,64 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                           <div className="text-[10px] text-gray-400">{row.productNameEn} ({row.unit || '1 kg'})</div>
                         </td>
 
-                        <td className="p-3 w-28">
+                        <td className="p-3">
+                          <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[11px] font-semibold">
+                            {catName}
+                          </span>
+                        </td>
+
+                        <td className="p-3">
                           <input
                             type="number"
                             min="1"
                             step="0.5"
-                            value={bulkRows.find(r => r.productId === row.productId)?.purchasePricePerKg || ''}
+                            value={bRow?.purchasePricePerKg ?? ''}
                             onChange={(e) => updateBulkRow(row.productId, 'purchasePricePerKg', e.target.value)}
                             className="w-20 px-2 py-1 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 bg-white"
                           />
                         </td>
 
-                        <td className="p-3 w-24">
+                        <td className="p-3">
                           <input
                             type="number"
                             min="1"
-                            value={bulkRows.find(r => r.productId === row.productId)?.purchasedQuantity || ''}
+                            value={bRow?.purchasedQuantity ?? ''}
                             onChange={(e) => updateBulkRow(row.productId, 'purchasedQuantity', e.target.value)}
                             className="w-16 px-2 py-1 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 bg-white"
                           />
                         </td>
 
-                        <td className="p-3 w-20">
+                        <td className="p-3">
                           <input
                             type="number"
                             min="0"
                             max="90"
-                            value={bulkRows.find(r => r.productId === row.productId)?.wastagePercentage || ''}
+                            value={bRow?.wastagePercentage ?? ''}
                             onChange={(e) => updateBulkRow(row.productId, 'wastagePercentage', e.target.value)}
                             className="w-14 px-2 py-1 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 bg-white text-center"
+                          />
+                        </td>
+
+                        <td className="p-3">
+                          <input
+                            type="number"
+                            min="0"
+                            value={bRow?.transportCost ?? ''}
+                            onChange={(e) => updateBulkRow(row.productId, 'transportCost', e.target.value)}
+                            className="w-16 px-2 py-1 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 bg-white"
+                            placeholder="50"
+                          />
+                        </td>
+
+                        <td className="p-3">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.25"
+                            value={bRow?.packagingCostPerKg ?? ''}
+                            onChange={(e) => updateBulkRow(row.productId, 'packagingCostPerKg', e.target.value)}
+                            className="w-16 px-2 py-1 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 bg-white"
+                            placeholder="1.5"
                           />
                         </td>
 
@@ -1607,12 +1668,12 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
                           ₹{row.totalUnitCost || 0}
                         </td>
 
-                        <td className="p-3 w-20">
+                        <td className="p-3">
                           <input
                             type="number"
                             min="1"
                             max="90"
-                            value={bulkRows.find(r => r.productId === row.productId)?.targetMargin || ''}
+                            value={bRow?.targetMargin ?? ''}
                             onChange={(e) => updateBulkRow(row.productId, 'targetMargin', e.target.value)}
                             className="w-14 px-2 py-1 border border-brand-primary/40 rounded-lg text-xs font-black text-brand-dark bg-brand-light/30 text-center"
                           />
@@ -1630,6 +1691,22 @@ export const PricingCalculator = ({ products = [], categories = [], onPriceUpdat
 
                         <td className="p-3 font-black text-emerald-700">
                           +₹{row.expectedProfitPerKg || 0}
+                        </td>
+
+                        <td className="p-3 font-bold text-emerald-800">
+                          {row.grossMarginPercent || 0}%
+                        </td>
+
+                        <td className="p-3">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={bRow?.competitorPrice ?? ''}
+                            onChange={(e) => updateBulkRow(row.productId, 'competitorPrice', e.target.value)}
+                            placeholder="₹/kg"
+                            className="w-20 px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-800 bg-white"
+                          />
                         </td>
 
                         <td className="p-3">

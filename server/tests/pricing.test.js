@@ -221,3 +221,37 @@ test('9. Database Integration: save calculation and verify historical record', a
   // Clean up test record
   await prisma.pricingCalculation.delete({ where: { id: record.id } });
 });
+
+test('10. Fixed batch costs vs per-kg cost allocation', () => {
+  const result = calculateVegetablePricing({
+    purchasePricePerKg: 30,
+    purchasedQuantity: 100,
+    wastagePercentage: 10, // 90 kg usable
+    handlingLabourCost: 180, // Fixed batch cost ₹180 => 180 / 90 = ₹2/kg
+    isLaborPerKg: false,
+    packagingCostPerKg: 1.5, // Per-kg cost = ₹1.5/kg
+    targetMargin: 20,
+  });
+
+  // Effective purchase cost = 3000 / 90 = 33.33
+  assert.equal(result.usableQuantity, 90);
+  assert.equal(result.effectivePurchaseCostPerKg, 33.33);
+  // Handling labour per kg = 180 / 90 = 2
+  assert.equal(result.handlingLabourCostPerKg, 2);
+  // Packaging per kg = 1.5
+  assert.equal(result.packagingCostPerKg, 1.5);
+  // Total unit additional cost = 2 + 1.5 = 3.5
+  assert.equal(result.totalUnitAdditionalCost, 3.5);
+  // Total unit cost = 33.33 + 3.5 = 36.83
+  assert.equal(result.totalUnitCost, 36.83);
+});
+
+test('11. Zero usable quantity rejection', () => {
+  assert.throws(() => {
+    calculateVegetablePricing({
+      purchasePricePerKg: 20,
+      purchasedQuantity: 50,
+      actualWastageQty: 50, // 100% loss
+    });
+  }, { message: /Usable quantity must be greater than zero/ });
+});

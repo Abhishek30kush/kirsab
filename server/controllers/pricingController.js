@@ -306,6 +306,7 @@ export const bulkCalculate = async (req, res, next) => {
           productNameHi: item.productNameHi,
           categoryId: item.categoryId,
           currentPrice,
+          competitorPrice: Number(item.competitorPrice) || null,
           ...calc,
           pricingStatus,
         };
