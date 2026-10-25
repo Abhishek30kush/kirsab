@@ -35,6 +35,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [previewError, setPreviewError] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -320,31 +321,63 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
 
             {/* Image URL & Live Preview */}
             <div>
-              <label className="block text-xs font-bold text-brand-charcoal mb-1">
-                Product Image URL *
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-bold text-brand-charcoal">
+                  Product Image URL *
+                </label>
+                <span className="text-[11px] text-brand-muted">
+                  Tip: Right-click image &rarr; "Copy image address"
+                </span>
+              </div>
               <div className="flex gap-3 items-center">
                 <input
                   type="url"
                   required
                   value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
+                  onChange={(e) => {
+                    setFormData({ ...formData, image: e.target.value });
+                    setPreviewError(false);
+                  }}
+                  placeholder="https://images.unsplash.com/photo-..."
                   className="w-full px-3.5 py-2 rounded-xl border border-brand-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
                 <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-brand-border flex items-center justify-center">
-                  {formData.image ? (
+                  {formData.image && !previewError ? (
                     <img
                       src={formData.image}
                       alt="Preview"
+                      referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
-                      onError={(e) => (e.target.style.display = 'none')}
+                      onError={() => setPreviewError(true)}
                     />
+                  ) : previewError ? (
+                    <span className="text-xl" title="Image failed to load">⚠️</span>
                   ) : (
                     <ImageIcon className="w-5 h-5 text-gray-400" />
                   )}
                 </div>
               </div>
+
+              {/* Warning if user pasted Unsplash page link */}
+              {formData.image.includes('unsplash.com/photos/') && (
+                <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block">Unsplash Page URL डिटेक्ट हुआ (इमेज शो नहीं होगी):</span>
+                    <span>
+                      आपने वेबपेज का लिंक पेस्ट किया है। कृपया Unsplash पर इमेज पर <strong>Right Click</strong> करके <strong>"Copy image address"</strong> (इमेज का पता कॉपी करें) चुनें। लिंक <code className="bg-amber-100 px-1 py-0.5 rounded text-[11px]">https://images.unsplash.com/...</code> होना चाहिए।
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Warning if preview failed */}
+              {formData.image && previewError && !formData.image.includes('unsplash.com/photos/') && (
+                <p className="mt-1.5 text-xs text-rose-600 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  इमेज लोड नहीं हो सकी। कृपया सुनिश्चित करें कि यह एक मान्य डायरेक्ट इमेज URL है।
+                </p>
+              )}
             </div>
 
             {/* Description */}

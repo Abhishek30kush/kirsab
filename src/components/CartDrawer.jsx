@@ -185,6 +185,7 @@ export const CartDrawer = () => {
                         <img 
                           src={p.image} 
                           alt={tProduct(p).name}
+                          referrerPolicy="no-referrer"
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             e.target.style.display = 'none';

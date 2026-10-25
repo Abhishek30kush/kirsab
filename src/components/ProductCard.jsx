@@ -28,6 +28,7 @@ export const ProductCard = ({ product }) => {
             src={product.image}
             alt={`${prodInfo.name} (${prodInfo.altName})`}
             loading="lazy"
+            referrerPolicy="no-referrer"
             onError={() => setImageError(true)}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />

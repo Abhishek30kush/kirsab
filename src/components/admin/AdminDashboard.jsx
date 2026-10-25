@@ -627,6 +627,7 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                               <img
                                 src={p.image}
                                 alt={p.nameEn}
+                                referrerPolicy="no-referrer"
                                 className="w-full h-full object-cover"
                                 onError={(e) => (e.target.style.display = 'none')}
                               />
