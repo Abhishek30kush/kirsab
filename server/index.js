@@ -8,6 +8,9 @@ import productRoutes from './routes/productRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import pricingRoutes from './routes/pricingRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import deliveryRoutes from './routes/deliveryRoutes.js';
+import adminDeliveryRoutes from './routes/adminDeliveryRoutes.js';
 import { getPublicOrderStats } from './controllers/orderController.js';
 import { generalApiLimiter } from './middleware/rateLimiter.js';
 import { initSocket } from './socket.js';
@@ -88,6 +91,9 @@ app.use('/api/products', productRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/pricing', pricingRoutes);
+app.use('/api/customer', customerRoutes);
+app.use('/api/delivery', deliveryRoutes);
+app.use('/api/admin/delivery', adminDeliveryRoutes);
 
 // 404 Handler for undefined API routes
 app.use('/api/*', (req, res) => {

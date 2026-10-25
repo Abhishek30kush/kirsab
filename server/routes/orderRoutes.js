@@ -10,12 +10,16 @@ import {
   getOrderStatusHistoryAdmin,
   getPublicOrderStats,
 } from '../controllers/orderController.js';
-import { requireAdmin } from '../middleware/authMiddleware.js';
+import { requireAdmin, optionalAuth } from '../middleware/authMiddleware.js';
+import {
+  assignOrderDelivery,
+  getOrderDeliveryAudit,
+} from '../controllers/adminDeliveryController.js';
 
 const router = express.Router();
 
-// Public endpoints
-router.post('/', createOrder);
+// Public endpoints (with optionalAuth to associate customer profile if logged in)
+router.post('/', optionalAuth, createOrder);
 router.get('/public-stats', getPublicOrderStats);
 
 // Protected admin endpoints
@@ -26,5 +30,9 @@ router.get('/admin', requireAdmin, getOrdersAdmin);
 router.get('/admin/:id', requireAdmin, getOrderByIdAdmin);
 router.get('/admin/:id/history', requireAdmin, getOrderStatusHistoryAdmin);
 router.patch('/admin/:id/status', requireAdmin, updateOrderStatusAdmin);
+
+// Admin delivery assignment & audit
+router.post('/admin/:id/assign-delivery', requireAdmin, assignOrderDelivery);
+router.get('/admin/:id/delivery-history', requireAdmin, getOrderDeliveryAudit);
 
 export default router;

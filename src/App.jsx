@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LanguageProvider } from './context/LanguageContext';
 import { CartProvider, useCart } from './context/CartContext';
+import { CustomerProvider, useCustomer } from './context/CustomerContext';
 import { DeveloperSetupBanner } from './components/DeveloperSetupBanner';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
@@ -14,11 +15,14 @@ import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { MobileCartBar } from './components/MobileCartBar';
 import { Toast } from './components/Toast';
+import { CustomerAuthModal } from './components/customer/CustomerAuthModal';
+import { CustomerPortalModal } from './components/customer/CustomerPortalModal';
+import { DeliveryPortal } from './components/delivery/DeliveryPortal';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { api, getAdminToken } from './utils/api';
 
-function MainStoreContent({ onOpenAdmin, isAdminLoggedIn }) {
+function MainStoreContent({ onOpenAdmin, isAdminLoggedIn, onOpenDelivery }) {
   const { refreshCatalog } = useCart();
 
   const scrollToCatalogue = () => {
@@ -33,8 +37,12 @@ function MainStoreContent({ onOpenAdmin, isAdminLoggedIn }) {
       {/* Top Developer / Owner Setup Banner (Only if WhatsApp number unconfigured) */}
       <DeveloperSetupBanner />
 
-      {/* Global Header with Admin Launch Action */}
-      <Header onOpenAdmin={onOpenAdmin} isAdminLoggedIn={isAdminLoggedIn} />
+      {/* Global Header with Admin & Delivery Partner Launch Actions */}
+      <Header
+        onOpenAdmin={onOpenAdmin}
+        isAdminLoggedIn={isAdminLoggedIn}
+        onOpenDelivery={onOpenDelivery}
+      />
 
       {/* Main Customer Sections */}
       <main className="flex-1">
@@ -60,13 +68,17 @@ function MainStoreContent({ onOpenAdmin, isAdminLoggedIn }) {
       </main>
 
       {/* Global Footer */}
-      <Footer />
+      <Footer onOpenAdmin={onOpenAdmin} onOpenDelivery={onOpenDelivery} />
 
       {/* Overlay Modals & Drawers */}
       <CartDrawer />
       <CheckoutModal />
       <MobileCartBar />
       <Toast />
+
+      {/* Customer Account & Order History Modals (Module 1 & 2) */}
+      <CustomerAuthModal />
+      <CustomerPortalModal />
     </div>
   );
 }
@@ -75,6 +87,7 @@ export function App() {
   const [adminUser, setAdminUser] = useState(null);
   const [isAdminView, setIsAdminView] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [isDeliveryView, setIsDeliveryView] = useState(false);
 
   // Check if admin is already logged in with stored JWT
   useEffect(() => {
@@ -95,12 +108,24 @@ export function App() {
     checkAuth();
   }, []);
 
-  // Handle URL path (/admin), hash (#admin), or query param (?admin=true)
+  // Handle URL path (/admin, /delivery), hash (#admin, #delivery), or query params
   useEffect(() => {
     const handleUrlCheck = () => {
-      const isHashAdmin = window.location.hash === '#admin';
-      const isQueryAdmin = new URLSearchParams(window.location.search).get('admin') === 'true';
-      const isPathAdmin = window.location.pathname.startsWith('/admin');
+      const path = window.location.pathname.replace(/\/+$/, '');
+      const hash = window.location.hash;
+      const search = window.location.search;
+
+      // Delivery Partner route
+      if (path === '/delivery' || hash === '#delivery' || new URLSearchParams(search).get('delivery') === 'true') {
+        setIsDeliveryView(true);
+        setIsAdminView(false);
+        return;
+      }
+
+      // Admin route
+      const isHashAdmin = hash === '#admin';
+      const isQueryAdmin = new URLSearchParams(search).get('admin') === 'true';
+      const isPathAdmin = path.startsWith('/admin');
 
       if (isHashAdmin || isQueryAdmin || isPathAdmin) {
         const token = getAdminToken();
@@ -111,6 +136,7 @@ export function App() {
         }
       }
     };
+
     handleUrlCheck();
     window.addEventListener('hashchange', handleUrlCheck);
     window.addEventListener('popstate', handleUrlCheck);
@@ -135,31 +161,44 @@ export function App() {
 
   return (
     <LanguageProvider>
-      <CartProvider>
-        {isAdminView && adminUser ? (
-          <AdminDashboard
-            adminUser={adminUser}
-            onExitAdmin={() => {
-              setIsAdminView(false);
-              if (window.location.pathname.startsWith('/admin')) {
-                window.history.pushState({}, '', '/');
-              }
-            }}
-          />
-        ) : (
-          <MainStoreContent
-            onOpenAdmin={handleAdminTrigger}
-            isAdminLoggedIn={Boolean(adminUser)}
-          />
-        )}
+      <CustomerProvider>
+        <CartProvider>
+          {/* View Selection: Delivery Partner Portal, Admin Dashboard, or Customer Store */}
+          {isDeliveryView ? (
+            <DeliveryPortal
+              onExit={() => {
+                setIsDeliveryView(false);
+                if (window.location.pathname.startsWith('/delivery') || window.location.hash === '#delivery') {
+                  window.history.pushState({}, '', '/');
+                }
+              }}
+            />
+          ) : isAdminView && adminUser ? (
+            <AdminDashboard
+              adminUser={adminUser}
+              onExitAdmin={() => {
+                setIsAdminView(false);
+                if (window.location.pathname.startsWith('/admin')) {
+                  window.history.pushState({}, '', '/');
+                }
+              }}
+            />
+          ) : (
+            <MainStoreContent
+              onOpenAdmin={handleAdminTrigger}
+              isAdminLoggedIn={Boolean(adminUser)}
+              onOpenDelivery={() => setIsDeliveryView(true)}
+            />
+          )}
 
-        {/* Admin Login Modal */}
-        <AdminLoginModal
-          isOpen={isAdminLoginOpen}
-          onClose={() => setIsAdminLoginOpen(false)}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      </CartProvider>
+          {/* Admin Login Modal */}
+          <AdminLoginModal
+            isOpen={isAdminLoginOpen}
+            onClose={() => setIsAdminLoginOpen(false)}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        </CartProvider>
+      </CustomerProvider>
     </LanguageProvider>
   );
 }

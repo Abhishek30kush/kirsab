@@ -12,7 +12,7 @@
     "prisma:push": "prisma db push",
     "seed": "node scripts/seedData.js",
     "create-admin": "node scripts/createAdmin.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test --test-concurrency=1 tests/*.test.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

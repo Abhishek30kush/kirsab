@@ -1,10 +1,12 @@
 import React from 'react';
-import { MapPin, MessageCircle, ShieldCheck } from 'lucide-react';
+import { MapPin, MessageCircle, ShieldCheck, Truck, User, Lock } from 'lucide-react';
 import { STORE_CONFIG, isWhatsAppConfigured } from '../config/store';
 import { useLanguage } from '../context/LanguageContext';
+import { useCustomer } from '../context/CustomerContext';
 
-export const Footer = () => {
+export const Footer = ({ onOpenAdmin, onOpenDelivery }) => {
   const { t, language } = useLanguage();
+  const { customerUser, setIsAuthModalOpen, setIsCustomerPortalOpen } = useCustomer();
   const isWaReady = isWhatsAppConfigured();
 
   const handleWhatsAppContact = () => {
@@ -73,6 +75,32 @@ export const Footer = () => {
               <li>• {language === 'en' ? 'Morning Slot: 07:00 AM – 10:00 AM' : 'प्रातः स्लॉट: 07:00 AM - 10:00 AM'}</li>
               <li>• {language === 'en' ? 'Evening Slot: 05:00 PM – 08:00 PM' : 'सायं स्लॉट: 05:00 PM - 08:00 PM'}</li>
             </ul>
+
+            {/* Quick Portals Links */}
+            <div className="mt-4 pt-3 border-t border-brand-border/60 flex flex-wrap gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  if (customerUser) setIsCustomerPortalOpen(true);
+                  else setIsAuthModalOpen(true);
+                }}
+                className="font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1"
+              >
+                <User className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{customerUser ? (language === 'hi' ? 'मेरा खाता व ऑर्डर्स' : 'My Account') : (language === 'hi' ? 'ग्राहक लॉगिन' : 'Customer Sign In')}</span>
+              </button>
+              
+              <span className="text-brand-border">•</span>
+
+              <button
+                type="button"
+                onClick={onOpenDelivery}
+                className="font-bold text-slate-700 hover:text-slate-900 flex items-center gap-1"
+              >
+                <Truck className="w-3.5 h-3.5 text-emerald-800" />
+                <span>{language === 'hi' ? 'डिलीवरी पार्टनर' : 'Delivery Portal'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Contact & Support */}
@@ -108,13 +136,15 @@ export const Footer = () => {
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-brand-muted">
           <p>
             © {new Date().getFullYear()} {STORE_CONFIG.brandName} ({STORE_CONFIG.brandNameHindi}). {t('footerRights')}{' '}
-            <a 
-              href="#admin" 
-              className="opacity-20 hover:opacity-100 transition-opacity text-[10px] text-gray-400 select-none" 
-              title="स्टाफ लॉगिन"
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className="text-gray-400 hover:text-brand-dark transition-colors inline-flex items-center gap-1 ml-1 font-semibold"
+              title="स्टाफ / एडमिन लॉगिन"
             >
-              •
-            </a>
+              <Lock className="w-3 h-3 inline" />
+              <span>Admin</span>
+            </button>
           </p>
           <p className="flex items-center gap-1">
             <span>{t('footerBuiltFor')}</span>

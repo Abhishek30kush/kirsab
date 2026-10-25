@@ -8,28 +8,49 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ||
 export const SOCKET_URL = API_BASE_URL.replace(/\/api\/?$/, '');
 
 /**
- * Helper to get stored admin auth token
+ * Token Helpers
  */
-export const getAdminToken = () => {
-  return localStorage.getItem('kirsab_admin_token');
-};
-
-/**
- * Helper to set stored admin auth token
- */
+export const getAdminToken = () => localStorage.getItem('kirsab_admin_token');
 export const setAdminToken = (token) => {
-  if (token) {
-    localStorage.setItem('kirsab_admin_token', token);
-  } else {
-    localStorage.removeItem('kirsab_admin_token');
-  }
+  if (token) localStorage.setItem('kirsab_admin_token', token);
+  else localStorage.removeItem('kirsab_admin_token');
+};
+
+export const getCustomerToken = () => localStorage.getItem('kirsab_customer_token');
+export const setCustomerToken = (token) => {
+  if (token) localStorage.setItem('kirsab_customer_token', token);
+  else localStorage.removeItem('kirsab_customer_token');
+};
+
+export const getDeliveryToken = () => localStorage.getItem('kirsab_delivery_token');
+export const setDeliveryToken = (token) => {
+  if (token) localStorage.setItem('kirsab_delivery_token', token);
+  else localStorage.removeItem('kirsab_delivery_token');
 };
 
 /**
- * Generic API request wrapper
+ * Generic API request wrapper with intelligent role-based token resolution
  */
 export const apiRequest = async (endpoint, options = {}) => {
-  const token = getAdminToken();
+  let token = options.token;
+
+  if (!token) {
+    if (endpoint.startsWith('/customer')) {
+      token = getCustomerToken();
+    } else if (endpoint.startsWith('/delivery')) {
+      token = getDeliveryToken();
+    } else if (endpoint === '/orders' && options.method === 'POST') {
+      token = getCustomerToken();
+    } else if (
+      endpoint.startsWith('/admin') ||
+      endpoint.startsWith('/pricing') ||
+      endpoint.includes('/admin') ||
+      endpoint === '/auth/me'
+    ) {
+      token = getAdminToken();
+    }
+  }
+
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -52,7 +73,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
 // API Services
 export const api = {
-  // Public
+  // Public Store
   getProducts: () => apiRequest('/products'),
   getSettings: () => apiRequest('/settings'),
   getPublicOrderStats: () => apiRequest('/orders/public-stats'),
@@ -67,6 +88,76 @@ export const api = {
     body: JSON.stringify(credentials),
   }),
   getMe: () => apiRequest('/auth/me'),
+
+  // Customer Auth & Portal (Module 1 & 2)
+  customerRegister: (payload) => apiRequest('/auth/customer/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  customerLogin: (payload) => apiRequest('/auth/customer/login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getCustomerProfile: () => apiRequest('/customer/profile'),
+  updateCustomerProfile: (payload) => apiRequest('/customer/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  getCustomerAddresses: () => apiRequest('/customer/addresses'),
+  createCustomerAddress: (address) => apiRequest('/customer/addresses', {
+    method: 'POST',
+    body: JSON.stringify(address),
+  }),
+  updateCustomerAddress: (id, address) => apiRequest(`/customer/addresses/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(address),
+  }),
+  deleteCustomerAddress: (id) => apiRequest(`/customer/addresses/${id}`, {
+    method: 'DELETE',
+  }),
+  getCustomerOrders: () => apiRequest('/customer/orders'),
+  getCustomerOrderById: (id) => apiRequest(`/customer/orders/${id}`),
+  cancelCustomerOrder: (id, reason) => apiRequest(`/customer/orders/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  }),
+
+  // Delivery Partner Auth & Portal (Module 3 & 4)
+  deliveryLogin: (payload) => apiRequest('/auth/delivery/login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getAssignedDeliveryOrders: (status = 'all') => apiRequest(`/delivery/orders?status=${status}`),
+  getDeliveryOrderById: (id) => apiRequest(`/delivery/orders/${id}`),
+  acceptDeliveryOrder: (id) => apiRequest(`/delivery/orders/${id}/accept`, {
+    method: 'POST',
+  }),
+  pickupDeliveryOrder: (id) => apiRequest(`/delivery/orders/${id}/pickup`, {
+    method: 'POST',
+  }),
+  outForDeliveryOrder: (id) => apiRequest(`/delivery/orders/${id}/out-for-delivery`, {
+    method: 'POST',
+  }),
+  verifyDeliveryPin: (id, pin) => apiRequest(`/delivery/orders/${id}/verify-pin`, {
+    method: 'POST',
+    body: JSON.stringify({ pin }),
+  }),
+
+  // Admin Delivery Management (Module 5)
+  getDeliveryPartners: () => apiRequest('/admin/delivery/partners'),
+  createDeliveryPartner: (payload) => apiRequest('/admin/delivery/partners', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateDeliveryPartner: (id, payload) => apiRequest(`/admin/delivery/partners/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  assignOrderDelivery: (orderId, partnerId, notes = '') => apiRequest(`/orders/admin/${orderId}/assign-delivery`, {
+    method: 'POST',
+    body: JSON.stringify({ partnerId, notes }),
+  }),
+  getOrderDeliveryAudit: (orderId) => apiRequest(`/orders/admin/${orderId}/delivery-history`),
 
   // Admin Products
   getAdminProducts: (params = '') => apiRequest(`/products/admin/all${params}`),

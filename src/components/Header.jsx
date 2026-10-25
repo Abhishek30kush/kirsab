@@ -1,12 +1,20 @@
 import React from 'react';
-import { ShoppingBag, MapPin, MessageCircle, Globe } from 'lucide-react';
+import { ShoppingBag, MapPin, MessageCircle, User, Truck, Shield } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useCustomer } from '../context/CustomerContext';
 import { isWhatsAppConfigured } from '../config/store';
 
-export const Header = () => {
+export const Header = ({ onOpenAdmin, isAdminLoggedIn, onOpenDelivery }) => {
   const { totals, setIsCartOpen, storeSettings } = useCart();
   const { language, setLanguage, t } = useLanguage();
+  const {
+    customerUser,
+    orders,
+    setIsAuthModalOpen,
+    setIsCustomerPortalOpen,
+  } = useCustomer();
+
   const waNumber = storeSettings?.whatsappNumber || 'REPLACE_WITH_BUSINESS_NUMBER';
   const isWaReady = isWhatsAppConfigured(waNumber);
 
@@ -69,8 +77,8 @@ export const Header = () => {
             <span className="text-brand-muted">• {storeSettings?.serviceArea?.city || t('servicePillCity')}</span>
           </div>
 
-          {/* Action CTAs: Language Switcher, WhatsApp & Cart */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Action CTAs */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
 
             {/* Language Switcher Segmented Pill */}
             <div 
@@ -104,16 +112,48 @@ export const Header = () => {
               </button>
             </div>
 
-            {/* WhatsApp Quick Link */}
-            <button
-              type="button"
-              onClick={handleWhatsAppContact}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-brand-dark bg-brand-soft hover:bg-emerald-100 transition-colors border border-brand-border"
-              title={language === 'en' ? 'Inquire on WhatsApp' : 'WhatsApp पर पूछताछ करें'}
-            >
-              <MessageCircle className="w-4 h-4 text-emerald-600" />
-              <span>{t('contactBtn')}</span>
-            </button>
+            {/* Delivery Partner Portal Quick Trigger */}
+            {onOpenDelivery && (
+              <button
+                type="button"
+                onClick={onOpenDelivery}
+                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors border border-slate-300 shadow-2xs"
+                title={language === 'hi' ? 'डिलीवरी पार्टनर पोर्टल' : 'Delivery Partner Portal'}
+              >
+                <Truck className="w-4 h-4 text-emerald-800" />
+                <span>{language === 'hi' ? 'डिलीवरी पोर्टल' : 'Delivery'}</span>
+              </button>
+            )}
+
+            {/* Customer Account Trigger (Module 1 & 2) */}
+            {customerUser ? (
+              <button
+                type="button"
+                onClick={() => setIsCustomerPortalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-2xs transition-all"
+                title={language === 'hi' ? 'मेरा खाता व ऑर्डर्स' : 'My Account & Orders'}
+              >
+                <div className="w-5 h-5 rounded-full bg-emerald-700 text-white flex items-center justify-center text-[10px] font-black">
+                  {customerUser.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:inline font-extrabold">{customerUser.name.split(' ')[0]}</span>
+                {orders.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-700 text-white text-[10px] font-mono">
+                    {orders.length}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold text-brand-dark bg-brand-soft hover:bg-emerald-100 border border-brand-border shadow-2xs transition-all"
+                title={language === 'hi' ? 'ग्राहक लॉगिन / नया खाता' : 'Customer Sign In'}
+              >
+                <User className="w-4 h-4 text-emerald-700" />
+                <span className="hidden xs:inline">{language === 'hi' ? 'लॉगिन' : 'Sign In'}</span>
+              </button>
+            )}
 
             {/* Cart Trigger Button */}
             <button

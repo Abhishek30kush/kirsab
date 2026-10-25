@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Send, 
@@ -11,10 +11,14 @@ import {
   FileText,
   Copy,
   ExternalLink,
-  ShieldAlert
+  ShieldAlert,
+  KeyRound,
+  Package,
+  Sparkles,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useCustomer } from '../context/CustomerContext';
 import { STORE_CONFIG, isWhatsAppConfigured } from '../config/store';
 import { validateCheckoutForm } from '../utils/validation';
 import { buildWhatsAppMessage, createWhatsAppOrderUrl } from '../utils/whatsapp';
@@ -30,6 +34,13 @@ export const CheckoutModal = () => {
     clearCart,
   } = useCart();
   const { t, isHindi, language } = useLanguage();
+  const {
+    customerUser,
+    addresses,
+    defaultAddress,
+    setIsAuthModalOpen,
+    setIsCustomerPortalOpen,
+  } = useCustomer();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -46,6 +57,35 @@ export const CheckoutModal = () => {
   const [submittedOrder, setSubmittedOrder] = useState(null); // When order is prepared
   const [copiedText, setCopiedText] = useState(false);
   const [apiError, setApiError] = useState(null);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+
+  // Automatic checkout autofill for logged-in customer (Module 1)
+  useEffect(() => {
+    if (customerUser) {
+      const activeAddr = defaultAddress || (addresses.length > 0 ? addresses[0] : null);
+      setFormData(prev => ({
+        ...prev,
+        fullName: prev.fullName || customerUser.name || '',
+        phone: prev.phone || customerUser.phone || '',
+        address: prev.address || (activeAddr ? `${activeAddr.flatNumber}, ${activeAddr.street}` : ''),
+        landmark: prev.landmark || (activeAddr?.landmark || ''),
+        instructions: prev.instructions || (activeAddr?.deliveryInstructions || ''),
+      }));
+      if (activeAddr) {
+        setSelectedAddressId(activeAddr.id);
+      }
+    }
+  }, [customerUser, defaultAddress, addresses, isCheckoutOpen]);
+
+  const handleSelectSavedAddress = (addr) => {
+    setSelectedAddressId(addr.id);
+    setFormData(prev => ({
+      ...prev,
+      address: `${addr.flatNumber}, ${addr.street}`,
+      landmark: addr.landmark || '',
+      instructions: addr.deliveryInstructions || prev.instructions,
+    }));
+  };
 
   if (!isCheckoutOpen) return null;
 
@@ -104,6 +144,7 @@ export const CheckoutModal = () => {
           finalTotal: response.order.finalTotal,
         },
         orderNumber: response.order.orderNumber,
+        deliveryPin: response.order.deliveryPin || response.deliveryPin,
       });
 
       // Open WhatsApp in new tab / application
@@ -234,6 +275,26 @@ export const CheckoutModal = () => {
                   </p>
                 </div>
 
+                {/* SECURE DELIVERY PIN CARD (Module 4) */}
+                {submittedOrder.deliveryPin && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950 via-emerald-900 to-brand-charcoal text-white text-center shadow-lg border border-emerald-400/40 relative overflow-hidden">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold mb-2 border border-emerald-400/30">
+                      <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{isHindi ? 'आपका सुरक्षित 6-अंकों का डिलीवरी पिन' : 'Your Secure 6-Digit Delivery PIN'}</span>
+                    </div>
+
+                    <div className="font-mono font-black text-3xl tracking-[0.25em] text-white py-1">
+                      {submittedOrder.deliveryPin}
+                    </div>
+
+                    <p className="text-[11px] text-emerald-100/80 mt-1 max-w-sm mx-auto leading-relaxed">
+                      {isHindi
+                        ? '⚠️ कृपया यह 6-अंकों का पिन केवल डिलीवरी पार्टनर के आपके द्वार पर पहुँचने पर ही साझा करें।'
+                        : '⚠️ Share this PIN with the delivery partner ONLY when your fresh vegetables arrive at your door.'}
+                    </p>
+                  </div>
+                )}
+
                 {/* Important Next Steps Guidance */}
                 <div className="bg-brand-soft/40 p-4 rounded-2xl border border-brand-border space-y-3">
                   <h5 className="font-bold text-xs uppercase tracking-wider text-brand-dark">
@@ -257,12 +318,31 @@ export const CheckoutModal = () => {
 
                 {/* Direct Action Buttons */}
                 <div className="space-y-2.5 pt-2">
+                  {/* Track Order Live Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearCart();
+                      setIsCheckoutOpen(false);
+                      setSubmittedOrder(null);
+                      if (customerUser) {
+                        setIsCustomerPortalOpen(true);
+                      } else {
+                        setIsAuthModalOpen(true);
+                      }
+                    }}
+                    className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold py-3.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs sm:text-sm"
+                  >
+                    <Package className="w-4 h-4 text-emerald-300" />
+                    <span>{isHindi ? 'ऑर्डर लाइव ट्रैक करें (Track Order)' : 'Track Order Status'}</span>
+                  </button>
+
                   {submittedOrder.whatsappUrl && (
                     <a
                       href={submittedOrder.whatsappUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full bg-[#25D366] hover:bg-[#20BA5C] text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                      className="w-full bg-[#25D366] hover:bg-[#20BA5C] text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-xs"
                     >
                       <Send className="w-4 h-4" />
                       <span>{t('openWhatsAppAgain')}</span>
@@ -272,7 +352,7 @@ export const CheckoutModal = () => {
                   <button
                     type="button"
                     onClick={copyMessageToClipboard}
-                    className="w-full bg-white hover:bg-gray-50 border border-brand-border text-brand-charcoal font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
+                    className="w-full bg-white hover:bg-gray-50 border border-brand-border text-brand-charcoal font-semibold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
                   >
                     <Copy className="w-4 h-4 text-brand-dark" />
                     <span>
@@ -299,6 +379,73 @@ export const CheckoutModal = () => {
             ) : (
               /* Checkout Form */
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Customer Account & Saved Addresses Banner (Module 1) */}
+                {customerUser ? (
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200/90 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-[11px]">
+                          {customerUser.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-extrabold text-emerald-950">
+                          {customerUser.name} (+91 {customerUser.phone})
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 font-extrabold text-[10px]">
+                        {isHindi ? 'स्वतः भरा गया' : 'Autofilled'}
+                      </span>
+                    </div>
+
+                    {/* Saved Addresses Chips */}
+                    {addresses.length > 0 && (
+                      <div className="mt-3 pt-2.5 border-t border-emerald-200/60">
+                        <span className="text-[11px] font-bold text-emerald-900 block mb-1.5">
+                          {isHindi ? 'सहेजे गए पते से चुनें:' : 'Select saved delivery address:'}
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {addresses.map((addr) => {
+                            const isSelected = selectedAddressId === addr.id;
+                            return (
+                              <button
+                                key={addr.id}
+                                type="button"
+                                onClick={() => handleSelectSavedAddress(addr)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                                  isSelected
+                                    ? 'bg-emerald-800 text-white border-emerald-800 shadow-2xs'
+                                    : 'bg-white text-emerald-950 border-emerald-200 hover:bg-emerald-100/50'
+                                }`}
+                              >
+                                <MapPin className="w-3 h-3" />
+                                <span>{addr.label}</span>
+                                <span className="text-[10px] opacity-80">({addr.flatNumber})</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-2xl bg-brand-soft/70 border border-brand-border text-xs flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span className="text-brand-charcoal">
+                        {isHindi
+                          ? 'क्या आप KIRSAB ग्राहक हैं? सहेजे गए पते से 1-क्लिक चेकआउट के लिए लॉगिन करें।'
+                          : 'Returning customer? Sign in for 1-click address autofill.'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-brand-dark hover:bg-brand-hover text-white text-[11px] font-extrabold shrink-0 shadow-2xs"
+                    >
+                      {isHindi ? 'लॉगिन करें' : 'Sign In'}
+                    </button>
+                  </div>
+                )}
+
                 {apiError && (
                   <div className="p-3 rounded-xl bg-red-50 border border-red-300 text-red-900 text-xs flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />

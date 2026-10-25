@@ -31,6 +31,7 @@ import { api, setAdminToken } from '../../utils/api';
 import { ProductEditModal } from './ProductEditModal';
 import { PricingCalculator } from './PricingCalculator';
 import { OrderAnalyticsLive } from './OrderAnalyticsLive';
+import { AdminDeliveryManagement } from './AdminDeliveryManagement';
 import { formatCurrency } from '../../utils/currency';
 
 export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => {
@@ -374,6 +375,17 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                   {stats.pendingOrders}
                 </span>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('delivery')}
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'delivery' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Delivery Management</span>
             </button>
 
             <button
@@ -1032,6 +1044,11 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
             adminUser={adminUser}
             showFeedback={showFeedback}
           />
+        )}
+
+        {/* 7. DELIVERY MANAGEMENT TAB (Module 5) */}
+        {activeTab === 'delivery' && (
+          <AdminDeliveryManagement />
         )}
 
       </main>

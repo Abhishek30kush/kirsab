@@ -165,29 +165,120 @@ model StoreSettings {
 }
 
 model Order {
-  id             String      @id @default(cuid())
-  orderNumber    String      @unique // e.g. KIR-2026-1001
-  customerName   String
-  customerPhone  String
-  address        String
-  landmark       String?
-  deliverySlot   String
-  instructions   String?
-  subtotal       Float
-  deliveryFee    Float
-  finalTotal     Float
-  status         String      @default("pending") // pending, confirmed, packed, out_for_delivery, delivered, cancelled
-  paymentMethod  String      @default("cod")
-  paymentStatus  String      @default("pending")
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  items          OrderItem[]
-  statusHistory  OrderStatusHistory[]
+  id                   String      @id @default(cuid())
+  orderNumber          String      @unique // e.g. KIR-2026-1001
+  customerName         String
+  customerPhone        String
+  address              String
+  landmark             String?
+  deliverySlot         String
+  instructions         String?
+  subtotal             Float
+  deliveryFee          Float
+  finalTotal           Float
+  status               String      @default("pending") // pending, confirmed, preparing, ready_for_dispatch, out_for_delivery, delivered, cancelled
+  paymentMethod        String      @default("cod")
+  paymentStatus        String      @default("pending")
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  items                OrderItem[]
+  statusHistory        OrderStatusHistory[]
+
+  // Customer link (nullable for guest checkout)
+  customerId           String?
+  customerUser         User?       @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: SetNull)
+
+  // Delivery Partner assignment
+  deliveryPartnerId    String?
+  deliveryPartner      User?       @relation("DeliveryPartnerOrders", fields: [deliveryPartnerId], references: [id], onDelete: SetNull)
+  assignedAt           DateTime?
+  acceptedAt           DateTime?
+  pickedUpAt           DateTime?
+  outForDeliveryAt     DateTime?
+  deliveredAt          DateTime?
+
+  // Secure Delivery PIN fields (Module 4)
+  deliveryPinHash      String?     // Keyed HMAC-SHA256 hash for secure constant-time verification
+  deliveryPinEncrypted String?     // AES-256-GCM encrypted for authenticated customer viewing
+  pinGeneratedAt       DateTime?
+  pinConsumedAt        DateTime?
+  pinFailedAttempts    Int         @default(0)
+  pinMaxAttempts       Int         @default(5)
+  pinLockedUntil       DateTime?
+
+  // Delivery verification and assignment audit logs
+  verificationAudits   DeliveryVerificationAudit[]
 
   @@index([orderNumber])
   @@index([status])
   @@index([createdAt])
   @@index([status, createdAt])
+  @@index([customerId])
+  @@index([deliveryPartnerId])
+}
+
+model User {
+  id                   String                      @id @default(cuid())
+  phone                String?                     @unique
+  email                String?                     @unique
+  name                 String
+  passwordHash         String
+  role                 String                      @default("customer") // customer, delivery_partner, admin
+  isActive             Boolean                     @default(true)
+  vehicleType          String?                     // For delivery partner: bike, scooter, cycle
+  vehicleNumber        String?                     // For delivery partner
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  addresses            CustomerAddress[]
+  orders               Order[]                     @relation("CustomerOrders")
+  assignedDeliveries   Order[]                     @relation("DeliveryPartnerOrders")
+  auditActions         DeliveryVerificationAudit[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([role, isActive])
+}
+
+model CustomerAddress {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label                String   @default("Home") // Home, Work, Other
+  flatNumber           String   // Tower & Flat / House No
+  street               String   // Street / Society name
+  locality             String   @default("Shervani Legacy")
+  city                 String   @default("Prayagraj")
+  state                String   @default("Uttar Pradesh")
+  pincode              String   @default("211011")
+  landmark             String?
+  deliveryInstructions String?
+  isDefault            Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, isDefault])
+}
+
+model DeliveryVerificationAudit {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  partnerId    String?
+  partner      User?    @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  actionType   String   // pin_verified, pin_failed, pin_locked, order_assigned, order_reassigned, order_accepted, order_picked_up, order_out_for_delivery
+  success      Boolean
+  attemptCount Int      @default(0)
+  notes        String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([orderId])
+  @@index([partnerId])
+  @@index([actionType])
+  @@index([createdAt])
 }
 
 model OrderStatusHistory {
@@ -220,3 +311,4 @@ model OrderItem {
 
   @@index([orderId])
 }
+

@@ -12,6 +12,11 @@ import {
   broadcastOrderCreated,
   broadcastOrderStatusUpdated,
 } from '../socket.js';
+import {
+  generateSecurePin,
+  hashPin,
+  encryptPin,
+} from '../utils/pinSecurity.js';
 
 /**
  * Public: Place a new order with atomic PostgreSQL transaction & master price validation
@@ -89,11 +94,20 @@ export const createOrder = async (req, res) => {
 
     const orderNumber = generateOrderNumber();
 
+    // Generate cryptographically secure 6-digit delivery PIN (Module 4)
+    const rawDeliveryPin = generateSecurePin();
+    const deliveryPinHash = hashPin(orderNumber, rawDeliveryPin);
+    const deliveryPinEncrypted = encryptPin(rawDeliveryPin);
+
+    // Resolve authenticated customerId if user is logged in
+    const customerId = req.user && req.user.role === 'customer' ? req.user.id : null;
+
     // Atomic transaction in PostgreSQL to save Order, immutable OrderItem snapshots, and initial history record
     const createdOrder = await prisma.$transaction(async (tx) => {
       const order = await tx.order.create({
         data: {
           orderNumber,
+          customerId,
           customerName: fullName.trim(),
           customerPhone: phoneClean,
           address: address.trim(),
@@ -106,6 +120,9 @@ export const createOrder = async (req, res) => {
           status: 'pending',
           paymentMethod: 'cod',
           paymentStatus: 'pending',
+          deliveryPinHash,
+          deliveryPinEncrypted,
+          pinGeneratedAt: new Date(),
           items: {
             create: verifiedOrderItems.map(item => ({
               productId: item.productId,
@@ -121,7 +138,7 @@ export const createOrder = async (req, res) => {
             create: {
               previousStatus: null,
               newStatus: 'pending',
-              changedBy: 'customer',
+              changedBy: customerId ? `customer:${customerId}` : 'customer',
               notes: 'Initial order placement by customer',
             },
           },
@@ -165,6 +182,8 @@ export const createOrder = async (req, res) => {
       whatsappText += `📝 निर्देश: "${createdOrder.instructions}"\n\n`;
     }
 
+    whatsappText += `🔒 *डिलीवरी पिन (Delivery PIN):* ${rawDeliveryPin}\n`;
+    whatsappText += `   _(कृपया यह 6-अंकों का पिन केवल डिलीवरी पार्टनर के आपके पते पर पहुँचने के बाद ही साझा करें)_\n\n`;
     whatsappText += `📌 *नोट:* यह ऑर्डर सिस्टम में सुरक्षित दर्ज हो चुका है। कृपया यह संदेश भेजकर पुष्टि करें।\n`;
     whatsappText += `_${storeSettings.tagline}_`;
 
@@ -177,10 +196,16 @@ export const createOrder = async (req, res) => {
       whatsappUrl = `https://wa.me/${cleanWaNum}?text=${encodeURIComponent(whatsappText)}`;
     }
 
+    const { deliveryPinHash: _h, deliveryPinEncrypted: _e, ...sanitizedOrder } = createdOrder;
+
     return res.status(201).json({
       success: true,
       message: 'ऑर्डर सफलतापूर्वक दर्ज हो गया है (Order placed successfully)',
-      order: createdOrder,
+      order: {
+        ...sanitizedOrder,
+        deliveryPin: rawDeliveryPin,
+      },
+      deliveryPin: rawDeliveryPin,
       whatsappUrl,
       whatsappMessage: whatsappText,
     });
@@ -221,7 +246,12 @@ export const getOrdersAdmin = async (req, res) => {
     const [orders, totalCount] = await Promise.all([
       prisma.order.findMany({
         where,
-        include: { items: true },
+        include: {
+          items: true,
+          deliveryPartner: {
+            select: { id: true, name: true, phone: true, vehicleType: true },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         take,
         skip,
@@ -229,9 +259,15 @@ export const getOrdersAdmin = async (req, res) => {
       prisma.order.count({ where }),
     ]);
 
+    // Sanitize any PIN secrets from admin listings
+    const sanitizedOrders = orders.map(o => {
+      const { deliveryPinHash, deliveryPinEncrypted, ...rest } = o;
+      return rest;
+    });
+
     return res.json({
       success: true,
-      data: orders,
+      data: sanitizedOrders,
       pagination: {
         total: totalCount,
         page: Number(page) || 1,
@@ -259,8 +295,19 @@ export const getOrderByIdAdmin = async (req, res) => {
       where: { id },
       include: {
         items: true,
+        deliveryPartner: {
+          select: { id: true, name: true, phone: true, vehicleType: true, vehicleNumber: true },
+        },
         statusHistory: {
           orderBy: { createdAt: 'desc' },
+        },
+        verificationAudits: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            partner: {
+              select: { id: true, name: true, phone: true },
+            },
+          },
         },
       },
     });
@@ -272,7 +319,9 @@ export const getOrderByIdAdmin = async (req, res) => {
       });
     }
 
-    return res.json({ success: true, data: order });
+    const { deliveryPinHash, deliveryPinEncrypted, ...sanitized } = order;
+
+    return res.json({ success: true, data: sanitized });
   } catch (error) {
     return res.status(500).json({
       success: false,
