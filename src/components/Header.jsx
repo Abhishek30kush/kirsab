@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, MapPin, MessageCircle, User, Truck, Shield } from 'lucide-react';
+import { ShoppingBag, MapPin, MessageCircle, User, Shield } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useCustomer } from '../context/CustomerContext';
@@ -111,19 +111,6 @@ export const Header = ({ onOpenAdmin, isAdminLoggedIn, onOpenDelivery }) => {
                 EN
               </button>
             </div>
-
-            {/* Delivery Partner Portal Quick Trigger */}
-            {onOpenDelivery && (
-              <button
-                type="button"
-                onClick={onOpenDelivery}
-                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors border border-slate-300 shadow-2xs"
-                title={language === 'hi' ? 'डिलीवरी पार्टनर पोर्टल' : 'Delivery Partner Portal'}
-              >
-                <Truck className="w-4 h-4 text-emerald-800" />
-                <span>{language === 'hi' ? 'डिलीवरी पोर्टल' : 'Delivery'}</span>
-              </button>
-            )}
 
             {/* Customer Account Trigger (Module 1 & 2) */}
             {customerUser ? (

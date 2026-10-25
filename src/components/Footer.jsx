@@ -89,17 +89,6 @@ export const Footer = ({ onOpenAdmin, onOpenDelivery }) => {
                 <User className="w-3.5 h-3.5 text-emerald-700" />
                 <span>{customerUser ? (language === 'hi' ? 'मेरा खाता व ऑर्डर्स' : 'My Account') : (language === 'hi' ? 'ग्राहक लॉगिन' : 'Customer Sign In')}</span>
               </button>
-              
-              <span className="text-brand-border">•</span>
-
-              <button
-                type="button"
-                onClick={onOpenDelivery}
-                className="font-bold text-slate-700 hover:text-slate-900 flex items-center gap-1"
-              >
-                <Truck className="w-3.5 h-3.5 text-emerald-800" />
-                <span>{language === 'hi' ? 'डिलीवरी पार्टनर' : 'Delivery Portal'}</span>
-              </button>
             </div>
           </div>
 
@@ -145,6 +134,20 @@ export const Footer = ({ onOpenAdmin, onOpenDelivery }) => {
               <Lock className="w-3 h-3 inline" />
               <span>Admin</span>
             </button>
+            {onOpenDelivery && (
+              <>
+                <span className="mx-1 text-gray-300">•</span>
+                <button
+                  type="button"
+                  onClick={onOpenDelivery}
+                  className="text-gray-400 hover:text-brand-dark transition-colors inline-flex items-center gap-1 font-semibold"
+                  title="डिलीवरी पार्टनर लॉगिन"
+                >
+                  <Truck className="w-3 h-3 inline" />
+                  <span>Delivery</span>
+                </button>
+              </>
+            )}
           </p>
           <p className="flex items-center gap-1">
             <span>{t('footerBuiltFor')}</span>
