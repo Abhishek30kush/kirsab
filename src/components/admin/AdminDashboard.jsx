@@ -26,9 +26,11 @@ import {
   RefreshCw,
   Calculator,
   Activity,
-  Tag
+  Tag,
+  Globe
 } from 'lucide-react';
 import { api, setAdminToken } from '../../utils/api';
+import { useLanguage } from '../../context/LanguageContext';
 import { ProductEditModal } from './ProductEditModal';
 import { PricingCalculator } from './PricingCalculator';
 import { OrderAnalyticsLive } from './OrderAnalyticsLive';
@@ -39,6 +41,14 @@ import { getFreshImageUrl } from '../../utils/image';
 import { STORE_CONFIG } from '../../config/store';
 
 export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => {
+  const { language, setLanguage, toggleLanguage } = useLanguage();
+
+  // Ensure Admin Dashboard default language is English
+  useEffect(() => {
+    if (language !== 'en') {
+      setLanguage('en');
+    }
+  }, []);
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname.replace(/\/+$/, '');
@@ -310,6 +320,17 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>View Customer Store</span>
+              </button>
+
+              {/* Language Switcher */}
+              <button
+                type="button"
+                onClick={toggleLanguage}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl transition-colors"
+                title="Switch Language"
+              >
+                <Globe className="w-3.5 h-3.5 text-emerald-300" />
+                <span>{language === 'en' ? 'EN' : 'HI'}</span>
               </button>
 
               <div className="text-right hidden md:block">
