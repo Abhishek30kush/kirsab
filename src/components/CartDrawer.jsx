@@ -13,6 +13,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { QuantitySelector } from './QuantitySelector';
 import { STORE_CONFIG } from '../config/store';
 import { formatCurrency } from '../utils/currency';
+import { getFreshImageUrl } from '../utils/image';
 
 export const CartDrawer = () => {
   const { 
@@ -183,7 +184,8 @@ export const CartDrawer = () => {
                       {/* Image / Fallback */}
                       <div className="w-16 h-16 rounded-xl bg-brand-soft overflow-hidden shrink-0 relative">
                         <img 
-                          src={p.image} 
+                          key={`${p.id}-${p.image}`}
+                          src={getFreshImageUrl(p.image, p.updatedAt)} 
                           alt={tProduct(p).name}
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-cover"

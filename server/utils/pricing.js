@@ -1,9 +1,18 @@
+import { resolveBestOfferForProduct, roundMoney } from './discountCalculator.js';
+
 /**
  * Server-side order verification & calculation logic
  * Never trust client prices or client-calculated totals!
+ *
+ * @param {object} params
+ * @param {Array} params.items Requested cart items [{ productId, quantity }]
+ * @param {Array} params.products Master products from DB
+ * @param {object} params.storeSettings Store configuration
+ * @param {Array} [params.offers=[]] List of active offers
+ * @param {Date} [params.now=new Date()] Current server time
+ * @returns {object} { subtotal, discountTotal, deliveryFee, finalTotal, verifiedOrderItems, appliedOfferIds }
  */
-
-export const calculateOrderTotals = ({ items, products, storeSettings }) => {
+export const calculateOrderTotals = ({ items, products, storeSettings, offers = [], now = new Date() }) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('टोकरी खाली है (Order items cannot be empty)');
   }
@@ -16,7 +25,9 @@ export const calculateOrderTotals = ({ items, products, storeSettings }) => {
 
   const productMap = new Map(products.map(p => [p.id, p]));
   let subtotal = 0;
+  let discountTotal = 0;
   const verifiedOrderItems = [];
+  const appliedOfferIds = new Set();
 
   for (const item of items) {
     const { productId, quantity } = item;
@@ -47,9 +58,34 @@ export const calculateOrderTotals = ({ items, products, storeSettings }) => {
       throw new Error(`'${product.nameHi}' का भाव अभी निर्धारित नहीं है (Product price is not configured)`);
     }
 
-    const unitPrice = Number(product.price);
-    const lineTotal = Number((unitPrice * intQty).toFixed(2));
+    const originalUnitPrice = roundMoney(Number(product.price));
+
+    // Resolve best eligible offer for this product at the requested quantity
+    const offerCalc = resolveBestOfferForProduct({
+      product,
+      activeOffers: offers,
+      quantity: intQty,
+      now,
+    });
+
+    let unitPrice = originalUnitPrice;
+    let discountPerUnit = 0;
+    let discountAmount = 0;
+    let offerId = null;
+    let offerTitle = null;
+
+    if (offerCalc && offerCalc.eligible && offerCalc.discountPerUnit > 0) {
+      unitPrice = offerCalc.finalUnitPrice;
+      discountPerUnit = offerCalc.discountPerUnit;
+      discountAmount = offerCalc.totalDiscount;
+      offerId = offerCalc.offerId;
+      offerTitle = offerCalc.offerTitle;
+      appliedOfferIds.add(offerId);
+    }
+
+    const lineTotal = roundMoney(unitPrice * intQty);
     subtotal += lineTotal;
+    discountTotal += discountAmount;
 
     // Build immutable snapshot record
     verifiedOrderItems.push({
@@ -58,12 +94,18 @@ export const calculateOrderTotals = ({ items, products, storeSettings }) => {
       productNameHi: product.nameHi,
       unit: product.unit,
       unitPrice,
+      originalUnitPrice,
+      discountPerUnit,
+      discountAmount,
+      offerId,
+      offerTitle,
       quantity: intQty,
       lineTotal,
     });
   }
 
-  subtotal = Number(subtotal.toFixed(2));
+  subtotal = roundMoney(subtotal);
+  discountTotal = roundMoney(discountTotal);
 
   // Check minimum order rule
   if (subtotal < minOrderValue) {
@@ -77,14 +119,16 @@ export const calculateOrderTotals = ({ items, products, storeSettings }) => {
   if (subtotal >= freeDeliveryThreshold) {
     deliveryFee = 0;
   }
-  deliveryFee = Number(deliveryFee.toFixed(2));
+  deliveryFee = roundMoney(deliveryFee);
 
-  const finalTotal = Number((subtotal + deliveryFee).toFixed(2));
+  const finalTotal = roundMoney(subtotal + deliveryFee);
 
   return {
     subtotal,
+    discountTotal,
     deliveryFee,
     finalTotal,
     verifiedOrderItems,
+    appliedOfferIds: Array.from(appliedOfferIds),
   };
 };

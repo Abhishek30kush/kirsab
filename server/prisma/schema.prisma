@@ -53,6 +53,7 @@ model Product {
   orderItems          OrderItem[]
   pricingCalculations PricingCalculation[]
   competitorPrices    CompetitorPrice[]
+  offers              OfferProduct[]
 
   @@index([categoryId])
   @@index([inStock, isConfigured, isActive])
@@ -174,6 +175,7 @@ model Order {
   deliverySlot         String
   instructions         String?
   subtotal             Float
+  discountTotal        Float       @default(0)
   deliveryFee          Float
   finalTotal           Float
   status               String      @default("pending") // pending, confirmed, preparing, ready_for_dispatch, out_for_delivery, delivered, cancelled
@@ -297,18 +299,60 @@ model OrderStatusHistory {
 }
 
 model OrderItem {
-  id            String   @id @default(cuid())
-  orderId       String
-  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId     String?
-  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  productNameEn String   // Immutable snapshot
-  productNameHi String   // Immutable snapshot
-  unit          String   // Immutable snapshot
-  unitPrice     Float    // Immutable snapshot
-  quantity      Int
-  lineTotal     Float
+  id                String   @id @default(cuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId         String?
+  product           Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productNameEn     String   // Immutable snapshot
+  productNameHi     String   // Immutable snapshot
+  unit              String   // Immutable snapshot
+  unitPrice         Float    // Immutable snapshot: final unit price after discount
+  originalUnitPrice Float?   // Immutable snapshot: original master unit price before discount
+  discountPerUnit   Float    @default(0) // Discount amount per unit
+  discountAmount    Float    @default(0) // Total discount amount applied to this line item (discountPerUnit * quantity)
+  offerId           String?
+  offer             Offer?   @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  offerTitle        String?  // Snapshot of offer name/title
+  quantity          Int
+  lineTotal         Float    // final unitPrice * quantity
 
   @@index([orderId])
+  @@index([offerId])
+}
+
+model Offer {
+  id            String         @id @default(cuid())
+  title         String         // e.g. "Weekend Fresh Green Sale", "₹10 Off Potatoes"
+  description   String?        // Optional promotional tagline or details
+  discountType  String         // "percentage" | "fixed"
+  discountValue Float          // Percentage (e.g. 20 for 20%) or Fixed amount (e.g. 15 for ₹15/unit)
+  startDate     DateTime       // Offer start timestamp
+  endDate       DateTime       // Offer expiry timestamp
+  isActive      Boolean        @default(true) // Admin activation toggle
+  minQuantity   Int?           // Optional minimum quantity required to qualify
+  maxDiscount   Float?         // Optional maximum cap on total discount per item
+  usageLimit    Int?           // Optional maximum usage limit across all orders
+  usageCount    Int            @default(0) // Total orders in which this offer has been used
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  products      OfferProduct[]
+  orderItems    OrderItem[]
+
+  @@index([isActive, startDate, endDate])
+  @@index([createdAt])
+}
+
+model OfferProduct {
+  id        String   @id @default(cuid())
+  offerId   String
+  offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([offerId, productId])
+  @@index([productId])
+  @@index([offerId])
 }
 

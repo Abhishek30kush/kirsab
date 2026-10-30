@@ -231,3 +231,23 @@ export async function broadcastOrderStatusUpdated(order, historyEntry = null, au
     console.error('Failed to broadcast order status update:', err);
   }
 }
+
+/**
+ * Broadcast event when product catalog or images change (create, update, toggle-stock, delete)
+ * Notifies all public visitors and admin channels instantly without requiring page refresh
+ */
+export function broadcastCatalogUpdated(changeDetails = {}) {
+  if (!io) return;
+  try {
+    const payload = {
+      ...changeDetails,
+      timestamp: new Date().toISOString(),
+    };
+    // Emit to ALL connected clients (customers storefront, visitors, delivery partners, and admins)
+    io.emit('catalog:updated', payload);
+    io.to('admin_channel').emit('admin:catalog_updated', payload);
+  } catch (err) {
+    console.error('Failed to broadcast catalog update:', err);
+  }
+}
+

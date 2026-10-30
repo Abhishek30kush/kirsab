@@ -51,13 +51,17 @@ export const apiRequest = async (endpoint, options = {}) => {
     }
   }
 
+  const isGet = !options.method || options.method.toUpperCase() === 'GET';
+
   const headers = {
     'Content-Type': 'application/json',
+    ...(isGet ? { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    cache: isGet ? 'no-store' : 'default',
     ...options,
     headers,
   });
@@ -220,4 +224,28 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
+
+  // Vegetable Offers & Discounts
+  getActiveOffers: () => apiRequest('/offers/active'),
+  getAdminOffers: (params = '') => apiRequest(`/offers/admin${params}`),
+  getAdminOfferById: (id) => apiRequest(`/offers/admin/${id}`),
+  previewOffer: (payload) => apiRequest('/offers/admin/preview', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  createOffer: (payload) => apiRequest('/offers/admin', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateOffer: (id, payload) => apiRequest(`/offers/admin/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }),
+  toggleOfferStatus: (id) => apiRequest(`/offers/admin/${id}/toggle-status`, {
+    method: 'PATCH',
+  }),
+  deleteOffer: (id) => apiRequest(`/offers/admin/${id}`, {
+    method: 'DELETE',
+  }),
 };
+

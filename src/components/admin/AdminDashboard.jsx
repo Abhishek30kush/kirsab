@@ -25,14 +25,17 @@ import {
   ShieldCheck,
   RefreshCw,
   Calculator,
-  Activity
+  Activity,
+  Tag
 } from 'lucide-react';
 import { api, setAdminToken } from '../../utils/api';
 import { ProductEditModal } from './ProductEditModal';
 import { PricingCalculator } from './PricingCalculator';
 import { OrderAnalyticsLive } from './OrderAnalyticsLive';
 import { AdminDeliveryManagement } from './AdminDeliveryManagement';
+import { OffersManagement } from './OffersManagement';
 import { formatCurrency } from '../../utils/currency';
+import { getFreshImageUrl } from '../../utils/image';
 
 export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => {
   const [activeTab, setActiveTab] = useState(() => {
@@ -45,9 +48,12 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
       if (path === '/admin/order-analytics' || hash === '#order-analytics' || path === '/admin/live-orders') {
         return 'order-analytics';
       }
+      if (path === '/admin/offers' || hash === '#offers') {
+        return 'offers';
+      }
     }
     return 'overview';
-  }); // 'overview' | 'products' | 'pricing-calculator' | 'order-analytics' | 'orders' | 'settings'
+  }); // 'overview' | 'products' | 'pricing-calculator' | 'offers' | 'order-analytics' | 'orders' | 'settings'
 
   // Dashboard Stats
   const [stats, setStats] = useState(null);
@@ -346,6 +352,22 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
             <button
               type="button"
               onClick={() => {
+                setActiveTab('offers');
+                if (typeof window !== 'undefined') {
+                  window.history.pushState({}, '', '/admin/offers');
+                }
+              }}
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'offers' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
+              }`}
+            >
+              <Tag className="w-3.5 h-3.5 text-amber-400" />
+              <span>Offers & Discounts</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
                 setActiveTab('order-analytics');
                 if (typeof window !== 'undefined') {
                   window.history.pushState({}, '', '/admin/order-analytics');
@@ -625,7 +647,8 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
                           <td className="p-3.5 flex items-center gap-2.5">
                             <div className="w-10 h-10 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-brand-border/60">
                               <img
-                                src={p.image}
+                                key={`${p.id}-${p.image}`}
+                                src={getFreshImageUrl(p.image, p.updatedAt)}
                                 alt={p.nameEn}
                                 referrerPolicy="no-referrer"
                                 className="w-full h-full object-cover"
@@ -1050,6 +1073,13 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
         {/* 7. DELIVERY MANAGEMENT TAB (Module 5) */}
         {activeTab === 'delivery' && (
           <AdminDeliveryManagement />
+        )}
+
+        {/* 8. OFFERS & DISCOUNTS MANAGEMENT TAB */}
+        {activeTab === 'offers' && (
+          <OffersManagement
+            onCatalogChanged={onCatalogChanged}
+          />
         )}
 
       </main>

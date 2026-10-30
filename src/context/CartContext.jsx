@@ -9,6 +9,7 @@ import { INITIAL_PRODUCTS } from '../data/products';
 import { STORE_CONFIG } from '../config/store';
 import { isPriceConfigured } from '../utils/currency';
 import { api } from '../utils/api';
+import { getPublicSocket } from '../utils/socket';
 import { useLanguage } from './LanguageContext';
 
 const CartContext = createContext(null);
@@ -17,24 +18,27 @@ export const CartProvider = ({ children }) => {
   const { t, isHindi } = useLanguage();
   // Master products state (fetched from backend PostgreSQL API)
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [offers, setOffers] = useState([]);
   const [storeSettings, setStoreSettings] = useState(STORE_CONFIG);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Cart items stored as array of { productId: string, quantity: number }
   const [cartItems, setCartItems] = useState(() => loadCartFromStorage());
 
-  // UI state for drawer and checkout modal
+  // UI state for drawer, checkout modal, and product detail modal
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [selectedProductForDetail, setSelectedProductForDetail] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Fetch live products and settings from server
+  // Fetch live products, settings, and active offers from server
   const fetchLiveData = useCallback(async () => {
     try {
       setIsLoadingData(true);
-      const [prodRes, settingsRes] = await Promise.allSettled([
+      const [prodRes, settingsRes, offersRes] = await Promise.allSettled([
         api.getProducts(),
         api.getSettings(),
+        api.getActiveOffers(),
       ]);
 
       if (prodRes.status === 'fulfilled' && prodRes.value?.data) {
@@ -42,6 +46,9 @@ export const CartProvider = ({ children }) => {
       }
       if (settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
         setStoreSettings(settingsRes.value.data);
+      }
+      if (offersRes.status === 'fulfilled' && offersRes.value?.data) {
+        setOffers(offersRes.value.data);
       }
     } catch (err) {
       console.warn('Could not connect to backend server, using fallback local master data:', err);
@@ -52,6 +59,44 @@ export const CartProvider = ({ children }) => {
 
   useEffect(() => {
     fetchLiveData();
+  }, [fetchLiveData]);
+
+  // Real-time catalog & image updates via Socket.IO
+  // When an admin updates an image or adds a product, immediately refresh live data
+  useEffect(() => {
+    const socket = getPublicSocket();
+    if (!socket) return;
+
+    const handleCatalogUpdate = () => {
+      fetchLiveData();
+    };
+
+    socket.on('catalog:updated', handleCatalogUpdate);
+
+    return () => {
+      socket.off('catalog:updated', handleCatalogUpdate);
+    };
+  }, [fetchLiveData]);
+
+  // Tab visibility & focus sync so user side never stays on stale cached data
+  useEffect(() => {
+    const handleSync = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchLiveData();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleSync);
+    window.addEventListener('focus', handleSync);
+
+    // Silent background heartbeat every 45 seconds
+    const interval = setInterval(fetchLiveData, 45000);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleSync);
+      window.removeEventListener('focus', handleSync);
+      clearInterval(interval);
+    };
   }, [fetchLiveData]);
 
   // Synchronize cart with localStorage whenever it changes
@@ -72,12 +117,12 @@ export const CartProvider = ({ children }) => {
     setToastMessage(message);
   };
 
-  // Enriched items containing master product details and validation flags
+  // Enriched items containing master product details, active offer discounts, and validation flags
   const enrichedItems = useMemo(() => {
-    return getEnrichedCartItems(cartItems, products);
-  }, [cartItems, products]);
+    return getEnrichedCartItems(cartItems, products, offers);
+  }, [cartItems, products, offers]);
 
-  // Order totals strictly calculated from master product definitions & store settings
+  // Order totals strictly calculated from master product definitions, active offers & store settings
   const totals = useMemo(() => {
     return calculateCartTotals(enrichedItems, storeSettings);
   }, [enrichedItems, storeSettings]);
@@ -145,6 +190,7 @@ export const CartProvider = ({ children }) => {
 
   const value = {
     products,
+    offers,
     storeSettings,
     isLoadingData,
     refreshCatalog: fetchLiveData,
@@ -155,6 +201,8 @@ export const CartProvider = ({ children }) => {
     setIsCartOpen,
     isCheckoutOpen,
     setIsCheckoutOpen,
+    selectedProductForDetail,
+    setSelectedProductForDetail,
     addToCart,
     updateQuantity,
     removeFromCart,

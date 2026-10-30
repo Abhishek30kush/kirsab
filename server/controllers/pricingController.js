@@ -4,6 +4,8 @@ import {
   normalizeCompetitorPrice,
   applyRoundingRule,
 } from '../utils/pricingCalculator.js';
+import { broadcastCatalogUpdated } from '../socket.js';
+
 
 /**
  * Preview / Validate calculation without persisting
@@ -244,6 +246,12 @@ export const applyPriceToProduct = async (req, res, next) => {
       }).catch(() => {});
     }
 
+    broadcastCatalogUpdated({
+      action: 'price_applied',
+      productId: updated.id,
+      product: updated,
+    });
+
     res.json({
       success: true,
       message: `${updated.nameHi} का नया विक्रय मूल्य ₹${updated.price} सफलतापूर्वक लागू किया गया!`,
@@ -396,6 +404,11 @@ export const bulkApplyPrices = async (req, res, next) => {
         }
       }
     }
+
+    broadcastCatalogUpdated({
+      action: 'bulk_price_applied',
+      updatedCount: validUpdates.length,
+    });
 
     res.json({
       success: true,

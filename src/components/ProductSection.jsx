@@ -14,9 +14,10 @@ export const ProductSection = () => {
   // Filter products by category and search term
   const filteredProducts = useMemo(() => {
     return products.filter((item) => {
-      // Category match
+      // Category match across string or category object relations
+      const itemCatId = item.categoryId || (typeof item.category === 'object' ? item.category?.id : item.category);
       const matchesCategory =
-        selectedCategory === 'all' || item.category === selectedCategory;
+        selectedCategory === 'all' || itemCatId === selectedCategory || item.category === selectedCategory;
 
       // Search match across English and Hindi names
       const query = searchQuery.trim().toLowerCase();

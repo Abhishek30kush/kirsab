@@ -1,4 +1,6 @@
 import { prisma } from '../config/db.js';
+import { resolveBestOfferForProduct, roundMoney } from '../utils/discountCalculator.js';
+import { broadcastCatalogUpdated } from '../socket.js';
 
 // Allowed standard package units to prevent mixing units
 export const ALLOWED_UNITS = [
@@ -16,6 +18,11 @@ export const ALLOWED_UNITS = [
  */
 export const getPublicProducts = async (req, res) => {
   try {
+    // Ensure browsers & reverse proxies never serve stale product data
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
@@ -36,10 +43,64 @@ export const getPublicProducts = async (req, res) => {
       ],
     });
 
+    const now = new Date();
+    const activeOffers = await prisma.offer.findMany({
+      where: {
+        isActive: true,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      include: {
+        products: true,
+      },
+    });
+
+    const eligibleOffers = activeOffers.filter(
+      o => o.usageLimit == null || (o.usageCount || 0) < o.usageLimit
+    );
+
+    const enrichedProducts = products.map(prod => {
+      const bestOffer = resolveBestOfferForProduct({
+        product: prod,
+        activeOffers: eligibleOffers,
+        quantity: 1,
+        now,
+      });
+
+      if (bestOffer && bestOffer.eligible && bestOffer.discountPerUnit > 0) {
+        return {
+          ...prod,
+          originalPrice: prod.price,
+          discountedPrice: bestOffer.finalUnitPrice,
+          discountPerUnit: bestOffer.discountPerUnit,
+          discountPercentage: prod.price ? Math.round((bestOffer.discountPerUnit / Number(prod.price)) * 100) : 0,
+          activeOffer: {
+            id: bestOffer.offerId,
+            title: bestOffer.offerTitle,
+            description: bestOffer.offerDescription,
+            discountType: bestOffer.discountType,
+            discountValue: bestOffer.discountValue,
+            endDate: bestOffer.endDate,
+            minQuantity: bestOffer.minQuantity,
+          },
+        };
+      }
+
+      return {
+        ...prod,
+        originalPrice: prod.price,
+        discountedPrice: prod.price,
+        discountPerUnit: 0,
+        discountPercentage: 0,
+        activeOffer: null,
+      };
+    });
+
     return res.json({
       success: true,
-      data: products,
-      count: products.length,
+      data: enrichedProducts,
+      count: enrichedProducts.length,
+      serverTime: now.toISOString(),
     });
   } catch (error) {
     console.error('Error fetching public products:', error);
@@ -56,6 +117,10 @@ export const getPublicProducts = async (req, res) => {
  */
 export const getAllProductsAdmin = async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const { category, search } = req.query;
 
     const where = {};
@@ -208,6 +273,14 @@ export const createProduct = async (req, res) => {
       include: { category: true },
     });
 
+    // Instantly broadcast catalog update with new product & image to all clients
+    broadcastCatalogUpdated({
+      action: 'created',
+      productId: newProduct.id,
+      image: newProduct.image,
+      product: newProduct,
+    });
+
     return res.status(201).json({
       success: true,
       message: 'नया उत्पाद सफलतापूर्वक जोड़ा गया (Product created successfully)',
@@ -287,6 +360,14 @@ export const updateProduct = async (req, res) => {
       include: { category: true },
     });
 
+    // Instantly broadcast catalog update with newly updated image and details to all clients
+    broadcastCatalogUpdated({
+      action: 'updated',
+      productId: updated.id,
+      image: updated.image,
+      product: updated,
+    });
+
     return res.json({
       success: true,
       message: 'उत्पाद सफलतापूर्वक अपडेट किया गया (Product updated successfully)',
@@ -321,6 +402,14 @@ export const toggleStock = async (req, res) => {
       data: { inStock: !existing.inStock },
     });
 
+    // Broadcast stock change
+    broadcastCatalogUpdated({
+      action: 'stock_toggled',
+      productId: updated.id,
+      inStock: updated.inStock,
+      product: updated,
+    });
+
     return res.json({
       success: true,
       message: `स्टॉक स्थिति: ${updated.inStock ? 'उपलब्ध (In Stock)' : 'समाप्त (Out of Stock)'}`,
@@ -353,6 +442,12 @@ export const deleteProduct = async (req, res) => {
         where: { id },
         data: { isActive: false, inStock: false },
       });
+
+      broadcastCatalogUpdated({
+        action: 'deactivated',
+        productId: id,
+      });
+
       return res.json({
         success: true,
         message: 'उत्पाद को निष्क्रिय कर दिया गया क्योंकि यह पुराने ऑर्डर्स में दर्ज है (Product deactivated to protect historical order integrity)',
@@ -360,6 +455,12 @@ export const deleteProduct = async (req, res) => {
     }
 
     await prisma.product.delete({ where: { id } });
+
+    broadcastCatalogUpdated({
+      action: 'deleted',
+      productId: id,
+    });
+
     return res.json({
       success: true,
       message: 'उत्पाद सफलतापूर्वक हटा दिया गया (Product deleted successfully)',
@@ -373,3 +474,4 @@ export const deleteProduct = async (req, res) => {
     });
   }
 };
+

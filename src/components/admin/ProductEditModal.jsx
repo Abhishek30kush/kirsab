@@ -344,6 +344,7 @@ export const ProductEditModal = ({ isOpen, onClose, product, categories = [], on
                 <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-brand-border flex items-center justify-center">
                   {formData.image && !previewError ? (
                     <img
+                      key={formData.image}
                       src={formData.image}
                       alt="Preview"
                       referrerPolicy="no-referrer"

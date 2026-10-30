@@ -80,16 +80,33 @@ export const createOrder = async (req, res) => {
       where: { id: { in: requestedProductIds } },
     });
 
+    // Fetch currently active offers from database
+    const now = new Date();
+    const activeOffers = await prisma.offer.findMany({
+      where: {
+        isActive: true,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      include: {
+        products: true,
+      },
+    });
+
     // Perform strict server-side calculation and price validation
     const {
       subtotal,
+      discountTotal,
       deliveryFee,
       finalTotal,
       verifiedOrderItems,
+      appliedOfferIds,
     } = calculateOrderTotals({
       items,
       products: dbProducts,
       storeSettings,
+      offers: activeOffers,
+      now,
     });
 
     const orderNumber = generateOrderNumber();
@@ -102,8 +119,22 @@ export const createOrder = async (req, res) => {
     // Resolve authenticated customerId if user is logged in
     const customerId = req.user && req.user.role === 'customer' ? req.user.id : null;
 
-    // Atomic transaction in PostgreSQL to save Order, immutable OrderItem snapshots, and initial history record
+    // Atomic transaction in PostgreSQL to save Order, immutable OrderItem snapshots, update offer usage, and initial history record
     const createdOrder = await prisma.$transaction(async (tx) => {
+      // Validate usage limits for applied offers inside transaction
+      if (appliedOfferIds && appliedOfferIds.length > 0) {
+        const lockedOffers = await tx.offer.findMany({
+          where: { id: { in: appliedOfferIds } },
+          select: { id: true, title: true, usageLimit: true, usageCount: true },
+        });
+
+        for (const off of lockedOffers) {
+          if (off.usageLimit != null && off.usageCount >= off.usageLimit) {
+            throw new Error(`ऑफ़र '${off.title}' की अधिकतम उपयोग सीमा पूरी हो चुकी है (Offer usage limit reached)`);
+          }
+        }
+      }
+
       const order = await tx.order.create({
         data: {
           orderNumber,
@@ -115,6 +146,7 @@ export const createOrder = async (req, res) => {
           deliverySlot,
           instructions: instructions ? instructions.trim() : null,
           subtotal,
+          discountTotal: discountTotal || 0,
           deliveryFee,
           finalTotal,
           status: 'pending',
@@ -130,6 +162,11 @@ export const createOrder = async (req, res) => {
               productNameHi: item.productNameHi,
               unit: item.unit,
               unitPrice: item.unitPrice,
+              originalUnitPrice: item.originalUnitPrice || item.unitPrice,
+              discountPerUnit: item.discountPerUnit || 0,
+              discountAmount: item.discountAmount || 0,
+              offerId: item.offerId || null,
+              offerTitle: item.offerTitle || null,
               quantity: item.quantity,
               lineTotal: item.lineTotal,
             })),
@@ -148,6 +185,14 @@ export const createOrder = async (req, res) => {
           statusHistory: true,
         },
       });
+
+      // Increment usage count for applied offers
+      if (appliedOfferIds && appliedOfferIds.length > 0) {
+        await tx.offer.updateMany({
+          where: { id: { in: appliedOfferIds } },
+          data: { usageCount: { increment: 1 } },
+        });
+      }
 
       return order;
     });
@@ -168,12 +213,21 @@ export const createOrder = async (req, res) => {
 
     whatsappText += `🥬 *सब्ज़ियाँ (Items):*\n`;
     createdOrder.items.forEach((item, idx) => {
+      const discountNote = item.discountAmount > 0
+        ? ` [छूट: ₹${item.discountAmount} (${item.offerTitle || 'ऑफ़र'})]`
+        : '';
+      const originalPriceNote = item.originalUnitPrice && item.originalUnitPrice > item.unitPrice
+        ? ` (मूल: ₹${item.originalUnitPrice})`
+        : '';
       whatsappText += `${idx + 1}. *${item.productNameHi}* (${item.productNameEn})\n`;
-      whatsappText += `   मात्रा: ${item.quantity} × ${item.unit} @ ₹${item.unitPrice} = *₹${item.lineTotal}*\n`;
+      whatsappText += `   मात्रा: ${item.quantity} × ${item.unit} @ ₹${item.unitPrice}${originalPriceNote} = *₹${item.lineTotal}*${discountNote}\n`;
     });
 
     whatsappText += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
     whatsappText += `📦 सब्ज़ी योग (Subtotal): ₹${createdOrder.subtotal}\n`;
+    if (createdOrder.discountTotal > 0) {
+      whatsappText += `🎉 *ऑफ़र बचत (Total Discount): -₹${createdOrder.discountTotal}*\n`;
+    }
     whatsappText += `🚚 डिलीवरी शुल्क: ${createdOrder.deliveryFee === 0 ? '*मुफ़्त (FREE)*' : `₹${createdOrder.deliveryFee}`}\n`;
     whatsappText += `💰 *कुल देय राशि: ₹${createdOrder.finalTotal}*\n`;
     whatsappText += `━━━━━━━━━━━━━━━━━━━━━\n`;

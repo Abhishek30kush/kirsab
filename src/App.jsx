@@ -83,6 +83,54 @@ function MainStoreContent({ onOpenAdmin, isAdminLoggedIn, onOpenDelivery }) {
   );
 }
 
+function MainAppShell({
+  isDeliveryView,
+  setIsDeliveryView,
+  isAdminView,
+  setIsAdminView,
+  adminUser,
+  handleAdminTrigger,
+}) {
+  const { refreshCatalog } = useCart();
+
+  if (isDeliveryView) {
+    return (
+      <DeliveryPortal
+        onExit={() => {
+          setIsDeliveryView(false);
+          if (window.location.pathname.startsWith('/delivery') || window.location.hash === '#delivery') {
+            window.history.pushState({}, '', '/');
+          }
+        }}
+      />
+    );
+  }
+
+  if (isAdminView && adminUser) {
+    return (
+      <AdminDashboard
+        adminUser={adminUser}
+        onExitAdmin={() => {
+          setIsAdminView(false);
+          if (window.location.pathname.startsWith('/admin')) {
+            window.history.pushState({}, '', '/');
+          }
+          refreshCatalog();
+        }}
+        onCatalogChanged={refreshCatalog}
+      />
+    );
+  }
+
+  return (
+    <MainStoreContent
+      onOpenAdmin={handleAdminTrigger}
+      isAdminLoggedIn={Boolean(adminUser)}
+      onOpenDelivery={() => setIsDeliveryView(true)}
+    />
+  );
+}
+
 export function App() {
   const [adminUser, setAdminUser] = useState(null);
   const [isAdminView, setIsAdminView] = useState(false);
@@ -164,32 +212,14 @@ export function App() {
       <CustomerProvider>
         <CartProvider>
           {/* View Selection: Delivery Partner Portal, Admin Dashboard, or Customer Store */}
-          {isDeliveryView ? (
-            <DeliveryPortal
-              onExit={() => {
-                setIsDeliveryView(false);
-                if (window.location.pathname.startsWith('/delivery') || window.location.hash === '#delivery') {
-                  window.history.pushState({}, '', '/');
-                }
-              }}
-            />
-          ) : isAdminView && adminUser ? (
-            <AdminDashboard
-              adminUser={adminUser}
-              onExitAdmin={() => {
-                setIsAdminView(false);
-                if (window.location.pathname.startsWith('/admin')) {
-                  window.history.pushState({}, '', '/');
-                }
-              }}
-            />
-          ) : (
-            <MainStoreContent
-              onOpenAdmin={handleAdminTrigger}
-              isAdminLoggedIn={Boolean(adminUser)}
-              onOpenDelivery={() => setIsDeliveryView(true)}
-            />
-          )}
+          <MainAppShell
+            isDeliveryView={isDeliveryView}
+            setIsDeliveryView={setIsDeliveryView}
+            isAdminView={isAdminView}
+            setIsAdminView={setIsAdminView}
+            adminUser={adminUser}
+            handleAdminTrigger={handleAdminTrigger}
+          />
 
           {/* Admin Login Modal */}
           <AdminLoginModal
