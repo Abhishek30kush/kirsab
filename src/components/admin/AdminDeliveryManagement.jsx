@@ -14,6 +14,13 @@ import {
   ArrowRight,
   X,
   Search,
+  Key,
+  Copy,
+  Check,
+  Sparkles,
+  Eye,
+  EyeOff,
+  MessageCircle,
 } from 'lucide-react';
 import { api } from '../../utils/api';
 
@@ -39,6 +46,14 @@ export const AdminDeliveryManagement = () => {
   const [assigningOrder, setAssigningOrder] = useState(null);
   const [selectedPartnerId, setSelectedPartnerId] = useState('');
   const [assignNotes, setAssignNotes] = useState('');
+
+  // Password Reset & Generation Modal State
+  const [resetPartner, setResetPartner] = useState(null);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [resetSuccessData, setResetSuccessData] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   // Audit Log State
   const [auditOrderNumber, setAuditOrderNumber] = useState('');
@@ -152,6 +167,62 @@ export const AdminDeliveryManagement = () => {
     } finally {
       setIsLoadingAudit(false);
     }
+  };
+
+  // Generate random memorable password (e.g. KIR-849201)
+  const generateRandomPassword = () => {
+    const digits = Math.floor(100000 + Math.random() * 900000);
+    const pass = `KIR-${digits}`;
+    setNewPasswordInput(pass);
+    return pass;
+  };
+
+  const handleOpenResetModal = (partner) => {
+    setResetPartner(partner);
+    setResetSuccessData(null);
+    setCopied(false);
+    setShowPassword(false);
+    const digits = Math.floor(100000 + Math.random() * 900000);
+    setNewPasswordInput(`KIR-${digits}`);
+  };
+
+  const handleConfirmResetPassword = async (e) => {
+    if (e) e.preventDefault();
+    if (!resetPartner) return;
+    setIsResettingPassword(true);
+    try {
+      const res = await api.resetDeliveryPartnerPassword(resetPartner.id, newPasswordInput);
+      if (res.success) {
+        showMsg(res.message || 'पासवर्ड सफलतापूर्वक रीसेट किया गया');
+        setResetSuccessData({
+          partner: res.partner || resetPartner,
+          password: res.newPassword || newPasswordInput,
+        });
+        loadPartners();
+      }
+    } catch (err) {
+      showMsg(err.message || 'पासवर्ड रीसेट करने में त्रुटि', 'error');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const handleCopyPassword = () => {
+    if (!resetSuccessData?.password) return;
+    navigator.clipboard.writeText(resetSuccessData.password);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const getWhatsAppShareUrl = () => {
+    if (!resetSuccessData) return '#';
+    const phone = (resetSuccessData.partner.phone || '').replace(/[^0-9]/g, '');
+    const cleanPhone = phone.length === 10 ? `91${phone}` : phone;
+    const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}` : '';
+    const text = encodeURIComponent(
+      `नमस्ते ${resetSuccessData.partner.name},\n\nKIRSAB डिलीवरी पार्टनर पोर्टल का आपका नया पासवर्ड रीसेट कर दिया गया है:\n🔑 नया पासवर्ड: *${resetSuccessData.password}*\n📱 मोबाइल नंबर: *${resetSuccessData.partner.phone}*\n\nपोर्टल लिंक: ${portalUrl}\n(कृपया इसे सुरक्षित रखें)`
+    );
+    return `https://wa.me/${cleanPhone}?text=${text}`;
   };
 
   // Metrics
@@ -444,18 +515,27 @@ export const AdminDeliveryManagement = () => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5 flex-wrap">
                 <a
                   href={`tel:${p.phone}`}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1"
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1"
                 >
                   <Phone className="w-3.5 h-3.5" />
                   <span>कॉल</span>
                 </a>
 
                 <button
+                  onClick={() => handleOpenResetModal(p)}
+                  className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-extrabold text-xs flex items-center gap-1 transition-all"
+                  title="पासवर्ड रीसेट या नया पासवर्ड बनाएं"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                  <span>पासवर्ड रीसेट</span>
+                </button>
+
+                <button
                   onClick={() => handleTogglePartner(p)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold ${
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
                     p.isActive
                       ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
                       : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
@@ -767,6 +847,158 @@ export const AdminDeliveryManagement = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. RESET / AUTO-GENERATE PARTNER PASSWORD MODAL */}
+      {resetPartner && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200 animate-scale-up space-y-4">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">
+                    डिलीवरी पार्टनर पासवर्ड रीसेट
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {resetPartner.name} • +91 {resetPartner.phone}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setResetPartner(null);
+                  setResetSuccessData(null);
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* If password was just reset successfully, show credentials & WhatsApp sharing */}
+            {resetSuccessData ? (
+              <div className="space-y-4 py-2">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-extrabold text-sm text-emerald-900">
+                    नया पासवर्ड सेट हो गया!
+                  </h4>
+                  <p className="text-xs text-emerald-700">
+                    डिलीवरी पार्टनर <strong>{resetSuccessData.partner.name}</strong> अब इस पासवर्ड से लॉगिन कर सकते हैं।
+                  </p>
+
+                  <div className="my-3 p-3 bg-white rounded-xl border border-emerald-200 flex items-center justify-between gap-2 shadow-xs">
+                    <span className="font-mono font-black text-lg text-slate-900 tracking-wider">
+                      {resetSuccessData.password}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyPassword}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copied ? 'कॉपी हुआ!' : 'कॉपी करें'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2">
+                  <a
+                    href={getWhatsAppShareUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition-all"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>WhatsApp पर नया पासवर्ड भेजें</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetPartner(null);
+                      setResetSuccessData(null);
+                    }}
+                    className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50"
+                  >
+                    हो गया (Done)
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Password Reset Form */
+              <form onSubmit={handleConfirmResetPassword} className="space-y-4 pt-1">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700">
+                      नया पासवर्ड दर्ज करें या ऑटो-जनरेट करें *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={generateRandomPassword}
+                      className="text-[11px] font-extrabold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 underline underline-offset-2"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>ऑटो-जनरेट करें</span>
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={newPasswordInput}
+                      onChange={(e) => setNewPasswordInput(e.target.value)}
+                      placeholder="कम से कम 6 अक्षर (उदा. KIR-748291)"
+                      className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-300 font-mono text-sm focus:ring-2 focus:ring-emerald-500"
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    'ऑटो-जनरेट' दबाकर नया कोड बना सकते हैं या अपनी पसंद का पासवर्ड टाइप करें।
+                  </span>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={isResettingPassword || !newPasswordInput || newPasswordInput.length < 6}
+                    className="flex-1 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-40 shadow-xs"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    <span>{isResettingPassword ? 'अपडेट हो रहा है...' : 'पासवर्ड रीसेट व सुरक्षित करें'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetPartner(null);
+                      setResetSuccessData(null);
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50"
+                  >
+                    रद्द
+                  </button>
+                </div>
+              </form>
+            )}
+
           </div>
         </div>
       )}

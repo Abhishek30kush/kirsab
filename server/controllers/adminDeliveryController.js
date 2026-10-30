@@ -228,6 +228,62 @@ export const updateDeliveryPartner = async (req, res) => {
 };
 
 /**
+ * Admin: Reset or auto-generate delivery partner password
+ */
+export const resetDeliveryPartnerPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { password } = req.body;
+
+    const partner = await prisma.user.findFirst({
+      where: { id, role: 'delivery_partner' },
+    });
+
+    if (!partner) {
+      return res.status(404).json({
+        success: false,
+        message: 'डिलीवरी पार्टनर नहीं मिला (Partner not found)',
+      });
+    }
+
+    // Auto-generate 6-digit formatted memorable password if not explicitly provided
+    if (!password || String(password).trim().length < 6) {
+      const randomDigits = Math.floor(100000 + Math.random() * 900000);
+      password = `KIR-${randomDigits}`;
+    } else {
+      password = String(password).trim();
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+
+    return res.json({
+      success: true,
+      message: `${partner.name} का नया पासवर्ड सफलतापूर्वक तैयार हो गया (Password reset successful)`,
+      partner: {
+        id: partner.id,
+        name: partner.name,
+        phone: partner.phone,
+        email: partner.email,
+      },
+      newPassword: password,
+    });
+  } catch (error) {
+    console.error('Error resetting partner password:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'पासवर्ड रीसेट करने में त्रुटि (Failed to reset password)',
+      error: error.message,
+    });
+  }
+};
+
+
+/**
  * Admin: Assign or reassign order to delivery partner
  */
 export const assignOrderDelivery = async (req, res) => {

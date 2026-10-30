@@ -193,6 +193,10 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify(payload),
   }),
+  resetDeliveryPartnerPassword: (id, password = '') => apiRequest(`/admin/delivery/partners/${id}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  }),
   assignOrderDelivery: (orderId, partnerId, notes = '') => apiRequest(`/orders/admin/${orderId}/assign-delivery`, {
     method: 'POST',
     body: JSON.stringify({ partnerId, notes }),
