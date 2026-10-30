@@ -8,6 +8,7 @@ import {
   deleteCustomerAddress,
   getCustomerOrders,
   getCustomerOrderById,
+  getCustomerOrderDeliveryPartner,
   cancelCustomerOrder,
 } from '../controllers/customerController.js';
 import { requireCustomer } from '../middleware/authMiddleware.js';
@@ -27,6 +28,7 @@ router.delete('/addresses/:id', requireCustomer, deleteCustomerAddress);
 // Order history & single order live details
 router.get('/orders', requireCustomer, getCustomerOrders);
 router.get('/orders/:id', requireCustomer, getCustomerOrderById);
+router.get('/orders/:id/delivery-partner', requireCustomer, getCustomerOrderDeliveryPartner);
 router.post('/orders/:id/cancel', requireCustomer, cancelCustomerOrder);
 
 export default router;

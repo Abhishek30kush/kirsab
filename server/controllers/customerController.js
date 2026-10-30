@@ -524,3 +524,73 @@ export const cancelCustomerOrder = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get assigned delivery partner details for customer order
+ */
+export const getCustomerOrderDeliveryPartner = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await prisma.order.findFirst({
+      where: {
+        OR: [{ id }, { orderNumber: id }],
+        AND: {
+          OR: [{ customerId: req.user.id }, { customerPhone: req.user.phone || '' }],
+        },
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        assignedAt: true,
+        acceptedAt: true,
+        pickedUpAt: true,
+        outForDeliveryAt: true,
+        deliveredAt: true,
+        deliveryPartner: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            vehicleType: true,
+            vehicleNumber: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'ऑर्डर नहीं मिला या आपको अनुमति नहीं है (Order not found or unauthorized)',
+      });
+    }
+
+    const isAssigned = Boolean(order.deliveryPartner);
+
+    return res.json({
+      success: true,
+      orderNumber: order.orderNumber,
+      isAssigned,
+      status: order.status,
+      deliveryPartner: order.deliveryPartner,
+      assignedAt: order.assignedAt,
+      acceptedAt: order.acceptedAt,
+      pickedUpAt: order.pickedUpAt,
+      outForDeliveryAt: order.outForDeliveryAt,
+      deliveredAt: order.deliveredAt,
+      message: isAssigned
+        ? 'डिलीवरी पार्टनर की जानकारी उपलब्ध है'
+        : 'डिलीवरी पार्टनर जल्द ही असाइन किया जाएगा (Delivery partner will be assigned soon)',
+    });
+  } catch (error) {
+    console.error('Error fetching customer order delivery partner:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'डिलीवरी पार्टनर जानकारी लोड करने में त्रुटि',
+      error: error.message,
+    });
+  }
+};
+

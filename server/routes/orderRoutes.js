@@ -13,6 +13,7 @@ import {
 import { requireAdmin, optionalAuth } from '../middleware/authMiddleware.js';
 import {
   assignOrderDelivery,
+  removeOrderDeliveryPartner,
   getOrderDeliveryAudit,
 } from '../controllers/adminDeliveryController.js';
 
@@ -31,8 +32,10 @@ router.get('/admin/:id', requireAdmin, getOrderByIdAdmin);
 router.get('/admin/:id/history', requireAdmin, getOrderStatusHistoryAdmin);
 router.patch('/admin/:id/status', requireAdmin, updateOrderStatusAdmin);
 
-// Admin delivery assignment & audit
+// Admin delivery assignment, unassignment & audit
 router.post('/admin/:id/assign-delivery', requireAdmin, assignOrderDelivery);
+router.delete('/admin/:id/assign-delivery', requireAdmin, removeOrderDeliveryPartner);
+router.delete('/admin/:id/delivery-partner', requireAdmin, removeOrderDeliveryPartner);
 router.get('/admin/:id/delivery-history', requireAdmin, getOrderDeliveryAudit);
 
 export default router;

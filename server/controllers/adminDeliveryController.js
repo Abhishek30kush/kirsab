@@ -476,3 +476,106 @@ export const getOrderDeliveryAudit = async (req, res) => {
     });
   }
 };
+
+/**
+ * Admin: Remove / Unassign delivery partner from an order
+ */
+export const removeOrderDeliveryPartner = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body || {};
+
+    const order = await prisma.order.findFirst({
+      where: { OR: [{ id }, { orderNumber: id }] },
+      include: {
+        deliveryPartner: {
+          select: { id: true, name: true, phone: true },
+        },
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'ऑर्डर नहीं मिला (Order not found)',
+      });
+    }
+
+    if (!order.deliveryPartnerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'इस ऑर्डर पर पहले से कोई डिलीवरी पार्टनर असाइन नहीं है (No delivery partner currently assigned)',
+      });
+    }
+
+    if (order.status === 'delivered') {
+      return res.status(400).json({
+        success: false,
+        message: 'डिलीवर हो चुके ऑर्डर से पार्टनर नहीं हटाया जा सकता (Cannot remove partner from delivered order)',
+      });
+    }
+
+    const previousPartner = order.deliveryPartner;
+    const previousPartnerId = order.deliveryPartnerId;
+    const auditNotes = `Delivery partner ${previousPartner?.name || previousPartnerId} removed by admin ${req.user.name || 'Admin'}. ${reason || ''}`.trim();
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedOrder = await tx.order.update({
+        where: { id: order.id },
+        data: {
+          deliveryPartnerId: null,
+          assignedAt: null,
+          acceptedAt: null,
+          // If order was out for delivery, move status back to confirmed
+          ...(order.status === 'out_for_delivery' || order.status === 'ready_for_dispatch' ? { status: 'confirmed' } : {}),
+        },
+        include: {
+          items: true,
+        },
+      });
+
+      const history = await tx.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          previousStatus: order.status,
+          newStatus: updatedOrder.status,
+          changedBy: `admin:${req.user.name || 'Admin'}`,
+          notes: auditNotes,
+        },
+      });
+
+      await tx.deliveryVerificationAudit.create({
+        data: {
+          orderId: order.id,
+          partnerId: previousPartnerId,
+          actionType: 'order_unassigned',
+          success: true,
+          notes: auditNotes,
+        },
+      });
+
+      return { updatedOrder, history };
+    });
+
+    // Broadcast status update to all connected clients & rooms
+    broadcastOrderStatusUpdated(updated.updatedOrder, updated.history).catch((e) =>
+      console.error('Socket broadcast error on unassign:', e)
+    );
+
+    const { deliveryPinHash, deliveryPinEncrypted, ...sanitized } = updated.updatedOrder;
+
+    return res.json({
+      success: true,
+      message: `डिलीवरी पार्टनर असाइनमेंट सफलतापूर्वक हटा दिया गया (${previousPartner?.name || 'Partner'} unassigned)`,
+      order: sanitized,
+    });
+  } catch (error) {
+    console.error('Error removing delivery partner:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'पार्टनर हटाने में त्रुटि (Failed to remove delivery partner)',
+      error: error.message,
+    });
+  }
+};
+

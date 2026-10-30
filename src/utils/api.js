@@ -157,6 +157,7 @@ export const api = {
   }),
   getCustomerOrders: () => apiRequest('/customer/orders'),
   getCustomerOrderById: (id) => apiRequest(`/customer/orders/${id}`),
+  getCustomerOrderDeliveryPartner: (id) => apiRequest(`/customer/orders/${id}/delivery-partner`),
   cancelCustomerOrder: (id, reason) => apiRequest(`/customer/orders/${id}/cancel`, {
     method: 'POST',
     body: JSON.stringify({ reason }),
@@ -200,6 +201,10 @@ export const api = {
   assignOrderDelivery: (orderId, partnerId, notes = '') => apiRequest(`/orders/admin/${orderId}/assign-delivery`, {
     method: 'POST',
     body: JSON.stringify({ partnerId, notes }),
+  }),
+  removeOrderDeliveryPartner: (orderId, reason = '') => apiRequest(`/orders/admin/${orderId}/delivery-partner`, {
+    method: 'DELETE',
+    body: JSON.stringify({ reason }),
   }),
   getOrderDeliveryAudit: (orderId) => apiRequest(`/orders/admin/${orderId}/delivery-history`),
 

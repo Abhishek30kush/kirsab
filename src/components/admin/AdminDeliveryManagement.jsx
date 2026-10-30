@@ -21,6 +21,8 @@ import {
   Eye,
   EyeOff,
   MessageCircle,
+  UserMinus,
+  History,
 } from 'lucide-react';
 import { api } from '../../utils/api';
 
@@ -30,6 +32,7 @@ export const AdminDeliveryManagement = () => {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [orderAssignmentFilter, setOrderAssignmentFilter] = useState('all'); // 'all', 'unassigned', 'assigned'
 
   // New Partner Modal
   const [isAddPartnerOpen, setIsAddPartnerOpen] = useState(false);
@@ -148,6 +151,27 @@ export const AdminDeliveryManagement = () => {
       loadPartners();
     } catch (err) {
       showMsg(err.message || 'असाइनमेंट विफल', 'error');
+    }
+  };
+
+  // Remove / Unassign delivery partner from order
+  const handleRemoveAssignment = async (orderToUnassign) => {
+    const target = orderToUnassign || assigningOrder;
+    if (!target) return;
+    const partnerName = target.deliveryPartner?.name || 'डिलीवरी पार्टनर';
+    const confirmMsg = `क्या आप ऑर्डर #${target.orderNumber} से ${partnerName} को हटाना (Unassign) चाहते हैं?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      await api.removeOrderDeliveryPartner(target.id, 'Admin unassigned delivery partner from dashboard');
+      showMsg(`ऑर्डर #${target.orderNumber} से डिलीवरी पार्टनर हटा दिया गया`);
+      setAssigningOrder(null);
+      setSelectedPartnerId('');
+      setAssignNotes('');
+      loadOrders();
+      loadPartners();
+    } catch (err) {
+      showMsg(err.message || 'पार्टनर हटाने में त्रुटि', 'error');
     }
   };
 
@@ -353,116 +377,214 @@ export const AdminDeliveryManagement = () => {
       </div>
 
       {/* SUB-TAB 1: ORDER ASSIGNMENT */}
-      {subTab === 'assignment' && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-extrabold text-base text-slate-900">
-                  सक्रिय ऑर्डर्स एवं डिलीवरी पार्टनर आवंटन
-                </h3>
-                <p className="text-xs text-slate-500">
-                  ऑर्डर्स को अधिकृत डिलीवरी पार्टनर को सौंपें ताकि वे पिन सत्यापन के साथ डिलीवरी कर सकें।
-                </p>
+      {/* SUB-TAB 1: ORDER ASSIGNMENT */}
+      {subTab === 'assignment' && (() => {
+        const activeOrders = orders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled');
+        const unassignedOrdersCount = activeOrders.filter((o) => !o.deliveryPartner).length;
+        const assignedOrdersCount = activeOrders.filter((o) => Boolean(o.deliveryPartner)).length;
+
+        const displayedOrders = activeOrders.filter((o) => {
+          if (orderAssignmentFilter === 'unassigned') return !o.deliveryPartner;
+          if (orderAssignmentFilter === 'assigned') return Boolean(o.deliveryPartner);
+          return true;
+        });
+
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+              <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">
+                    सक्रिय ऑर्डर्स एवं डिलीवरी पार्टनर आवंटन
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    ऑर्डर्स को अधिकृत डिलीवरी पार्टनर को सौंपें ताकि वे पिन सत्यापन के साथ डिलीवरी कर सकें।
+                  </p>
+                </div>
+
+                {/* Filter Pills */}
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl self-start sm:self-auto">
+                  <button
+                    onClick={() => setOrderAssignmentFilter('all')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                      orderAssignmentFilter === 'all'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    सभी ({activeOrders.length})
+                  </button>
+                  <button
+                    onClick={() => setOrderAssignmentFilter('unassigned')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                      orderAssignmentFilter === 'unassigned'
+                        ? 'bg-amber-500 text-white shadow-xs'
+                        : 'text-amber-700 hover:bg-amber-100/50'
+                    }`}
+                  >
+                    <span>बिना पार्टनर</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-600 text-white font-mono">
+                      {unassignedOrdersCount}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setOrderAssignmentFilter('assigned')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                      orderAssignmentFilter === 'assigned'
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'text-emerald-800 hover:bg-emerald-100/50'
+                    }`}
+                  >
+                    <span>असाइन किए गए</span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-800 text-white font-mono">
+                      {assignedOrdersCount}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[11px]">
+                    <tr>
+                      <th className="p-3.5 pl-5">ऑर्डर संदर्भ</th>
+                      <th className="p-3.5">ग्राहक व संपर्क</th>
+                      <th className="p-3.5">डिलीवरी पता</th>
+                      <th className="p-3.5">स्थिति</th>
+                      <th className="p-3.5">वर्तमान पार्टनर</th>
+                      <th className="p-3.5 text-right pr-5">कार्रवाई</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {displayedOrders.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="text-center py-10 text-slate-400">
+                          कोई ऑर्डर नहीं मिला
+                        </td>
+                      </tr>
+                    ) : (
+                      displayedOrders.map((ord) => {
+                        const isAssigned = Boolean(ord.deliveryPartner);
+
+                        return (
+                          <tr key={ord.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="p-3.5 pl-5">
+                              <span className="font-mono font-black text-emerald-900 block">
+                                #{ord.orderNumber}
+                              </span>
+                              <span className="text-[11px] text-slate-400">
+                                {new Date(ord.createdAt).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </td>
+
+                            <td className="p-3.5">
+                              <span className="font-extrabold text-slate-900 block">
+                                {ord.customerName}
+                              </span>
+                              <span className="text-slate-500 font-mono text-[11px]">
+                                +91 {ord.customerPhone}
+                              </span>
+                            </td>
+
+                            <td className="p-3.5 max-w-xs">
+                              <p className="truncate text-slate-800">{ord.address}</p>
+                              <span className="text-[10px] text-emerald-800 font-bold block">
+                                स्लॉट: {ord.deliverySlot}
+                              </span>
+                            </td>
+
+                            <td className="p-3.5">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-800">
+                                {ord.status.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+
+                            <td className="p-3.5">
+                              {isAssigned ? (
+                                <div>
+                                  <span className="font-extrabold text-emerald-900 block">
+                                    {ord.deliveryPartner.name}
+                                  </span>
+                                  <span className="text-[11px] text-slate-500 font-mono block">
+                                    +91 {ord.deliveryPartner.phone}
+                                  </span>
+                                  {ord.assignedAt && (
+                                    <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                      <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                      {new Date(ord.assignedAt).toLocaleTimeString([], {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 font-extrabold text-[10px] border border-amber-200">
+                                  पार्टनर प्रतीक्षित
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="p-3.5 text-right pr-5">
+                              {isAssigned ? (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      setAssigningOrder(ord);
+                                      setSelectedPartnerId(ord.deliveryPartnerId || '');
+                                      setAssignNotes('');
+                                    }}
+                                    className="px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all bg-slate-100 hover:bg-slate-200 text-slate-800"
+                                    title="पार्टनर बदलें (Reassign)"
+                                  >
+                                    पुनः असाइन
+                                  </button>
+                                  <button
+                                    onClick={() => handleRemoveAssignment(ord)}
+                                    className="p-1.5 rounded-xl text-xs font-extrabold transition-all bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200"
+                                    title="पार्टनर हटाएं (Remove assignment)"
+                                  >
+                                    <UserMinus className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setAuditOrderNumber(ord.orderNumber);
+                                      handleSearchAudit(ord.orderNumber);
+                                      setSubTab('audit');
+                                    }}
+                                    className="p-1.5 rounded-xl text-xs font-extrabold transition-all bg-slate-100 hover:bg-slate-200 text-slate-700"
+                                    title="असाइनमेंट इतिहास देखें (View History)"
+                                  >
+                                    <History className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setAssigningOrder(ord);
+                                    setSelectedPartnerId(ord.deliveryPartnerId || '');
+                                    setAssignNotes('');
+                                  }}
+                                  className="px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all bg-emerald-800 hover:bg-emerald-900 text-white shadow-2xs"
+                                >
+                                  पार्टनर चुनें
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[11px]">
-                  <tr>
-                    <th className="p-3.5 pl-5">ऑर्डर संदर्भ</th>
-                    <th className="p-3.5">ग्राहक व संपर्क</th>
-                    <th className="p-3.5">डिलीवरी पता</th>
-                    <th className="p-3.5">स्थिति</th>
-                    <th className="p-3.5">वर्तमान पार्टनर</th>
-                    <th className="p-3.5 text-right pr-5">कार्रवाई</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
-                  {orders
-                    .filter((o) => o.status !== 'delivered' && o.status !== 'cancelled')
-                    .map((ord) => {
-                      const isAssigned = Boolean(ord.deliveryPartner);
-
-                      return (
-                        <tr key={ord.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="p-3.5 pl-5">
-                            <span className="font-mono font-black text-emerald-900 block">
-                              #{ord.orderNumber}
-                            </span>
-                            <span className="text-[11px] text-slate-400">
-                              {new Date(ord.createdAt).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </td>
-
-                          <td className="p-3.5">
-                            <span className="font-extrabold text-slate-900 block">
-                              {ord.customerName}
-                            </span>
-                            <span className="text-slate-500 font-mono text-[11px]">
-                              +91 {ord.customerPhone}
-                            </span>
-                          </td>
-
-                          <td className="p-3.5 max-w-xs">
-                            <p className="truncate text-slate-800">{ord.address}</p>
-                            <span className="text-[10px] text-emerald-800 font-bold block">
-                              स्लॉट: {ord.deliverySlot}
-                            </span>
-                          </td>
-
-                          <td className="p-3.5">
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-800">
-                              {ord.status.replace(/_/g, ' ')}
-                            </span>
-                          </td>
-
-                          <td className="p-3.5">
-                            {isAssigned ? (
-                              <div>
-                                <span className="font-extrabold text-emerald-900 block">
-                                  {ord.deliveryPartner.name}
-                                </span>
-                                <span className="text-[11px] text-slate-400">
-                                  +91 {ord.deliveryPartner.phone}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 font-extrabold text-[10px] border border-amber-200">
-                                पार्टनर प्रतीक्षित
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="p-3.5 text-right pr-5">
-                            <button
-                              onClick={() => {
-                                setAssigningOrder(ord);
-                                setSelectedPartnerId(ord.deliveryPartnerId || '');
-                                setAssignNotes('');
-                              }}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all shadow-2xs ${
-                                isAssigned
-                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
-                                  : 'bg-emerald-800 hover:bg-emerald-900 text-white'
-                              }`}
-                            >
-                              {isAssigned ? 'पुनः असाइन करें' : 'पार्टनर चुनें'}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* SUB-TAB 2: PARTNERS LIST & ACTIONS */}
       {subTab === 'partners' && (
@@ -768,88 +890,152 @@ export const AdminDeliveryManagement = () => {
       )}
 
       {/* Modal: Assign Order to Partner */}
-      {assigningOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="font-extrabold text-base text-slate-900">
-                  ऑर्डर असाइन करें
-                </h3>
-                <span className="font-mono text-xs text-emerald-800 font-bold">
-                  #{assigningOrder.orderNumber}
-                </span>
-              </div>
-              <button
-                onClick={() => setAssigningOrder(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {assigningOrder && (() => {
+        const currentlyAssigned = assigningOrder.deliveryPartner;
+        const selectedPartner = partners.find((p) => p.id === selectedPartnerId);
 
-            <div className="my-4 p-3 rounded-2xl bg-slate-50 text-xs space-y-1">
-              <p>ग्राहक: <strong>{assigningOrder.customerName}</strong> (+91 {assigningOrder.customerPhone})</p>
-              <p>पता: <strong>{assigningOrder.address}</strong></p>
-              <p>स्लॉट: <strong>{assigningOrder.deliverySlot}</strong></p>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  डिलीवरी पार्टनर चुनें *
-                </label>
-                <select
-                  value={selectedPartnerId}
-                  onChange={(e) => setSelectedPartnerId(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500"
-                  required
-                >
-                  <option value="">-- पार्टनर चुनें --</option>
-                  {partners
-                    .filter((p) => p.isActive)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (+91 {p.phone}) — {p.activeOrdersCount || 0} सक्रिय ऑर्डर्स
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  निर्देश / नोट्स (वैकल्पिक)
-                </label>
-                <input
-                  type="text"
-                  placeholder="उदा. गेट 2 से प्रवेश करें"
-                  value={assignNotes}
-                  onChange={(e) => setAssignNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-3">
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+            <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-200">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">
+                    {currentlyAssigned ? 'डिलीवरी पार्टनर बदलें (Reassign)' : 'डिलीवरी पार्टनर असाइन करें'}
+                  </h3>
+                  <span className="font-mono text-xs text-emerald-800 font-bold">
+                    #{assigningOrder.orderNumber}
+                  </span>
+                </div>
                 <button
-                  type="button"
-                  disabled={!selectedPartnerId}
-                  onClick={handleConfirmAssign}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-800 text-white font-extrabold text-xs hover:bg-emerald-900 disabled:opacity-40"
-                >
-                  असाइनमेंट पुष्टि करें
-                </button>
-                <button
-                  type="button"
                   onClick={() => setAssigningOrder(null)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-800"
                 >
-                  रद्द
+                  <X className="w-5 h-5" />
                 </button>
+              </div>
+
+              {/* Order Info */}
+              <div className="my-3 p-3 rounded-2xl bg-slate-50 text-xs space-y-1">
+                <p>ग्राहक: <strong>{assigningOrder.customerName}</strong> (+91 {assigningOrder.customerPhone})</p>
+                <p>पता: <strong>{assigningOrder.address}</strong></p>
+                <p>स्लॉट: <strong>{assigningOrder.deliverySlot}</strong></p>
+              </div>
+
+              {/* Currently Assigned Partner Card if any */}
+              {currentlyAssigned && (
+                <div className="mb-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">
+                      वर्तमान में असाइन
+                    </span>
+                    <p className="font-extrabold text-emerald-950 text-sm">
+                      {currentlyAssigned.name}
+                    </p>
+                    <p className="text-emerald-700 font-mono text-[11px]">
+                      +91 {currentlyAssigned.phone}
+                    </p>
+                    {assigningOrder.assignedAt && (
+                      <p className="text-[10px] text-emerald-600 mt-0.5">
+                        असाइन समय: {new Date(assigningOrder.assignedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAssignment(assigningOrder)}
+                    className="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs flex items-center gap-1 transition-colors"
+                    title="पार्टनर को हटाएं"
+                  >
+                    <UserMinus className="w-3.5 h-3.5" />
+                    <span>हटाएं</span>
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    {currentlyAssigned ? 'नया पार्टनर चुनें *' : 'डिलीवरी पार्टनर चुनें *'}
+                  </label>
+                  <select
+                    value={selectedPartnerId}
+                    onChange={(e) => setSelectedPartnerId(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500"
+                    required
+                  >
+                    <option value="">-- पार्टनर चुनें --</option>
+                    {partners
+                      .filter((p) => p.isActive)
+                      .map((p) => {
+                        const count = p.activeOrdersCount || 0;
+                        const statusBadge = count === 0 ? '🟢 उपलब्ध (0 सक्रिय)' : `🟡 व्यस्त (${count} सक्रिय)`;
+                        return (
+                          <option key={p.id} value={p.id}>
+                            {p.name} (+91 {p.phone}) — {statusBadge}
+                          </option>
+                        );
+                      })}
+                  </select>
+                </div>
+
+                {/* Selected Partner Availability Card */}
+                {selectedPartner && (
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] flex items-center justify-between">
+                    <div>
+                      <span className="font-extrabold text-slate-900 block">{selectedPartner.name}</span>
+                      <span className="text-slate-500 font-mono">+91 {selectedPartner.phone}</span>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`px-2 py-0.5 rounded-full font-black text-[10px] ${
+                          (selectedPartner.activeOrdersCount || 0) === 0
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {(selectedPartner.activeOrdersCount || 0) === 0
+                          ? 'उपलब्ध (Available)'
+                          : `${selectedPartner.activeOrdersCount} सक्रिय ऑर्डर्स`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    निर्देश / नोट्स (वैकल्पिक)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="उदा. गेट 2 से प्रवेश करें"
+                    value={assignNotes}
+                    onChange={(e) => setAssignNotes(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-3">
+                  <button
+                    type="button"
+                    disabled={!selectedPartnerId || selectedPartnerId === assigningOrder.deliveryPartnerId}
+                    onClick={handleConfirmAssign}
+                    className="flex-1 py-2.5 rounded-xl bg-emerald-800 text-white font-extrabold text-xs hover:bg-emerald-900 disabled:opacity-40"
+                  >
+                    {currentlyAssigned ? 'पुनः असाइन करें' : 'असाइनमेंट पुष्टि करें'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssigningOrder(null)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold"
+                  >
+                    रद्द
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 3. RESET / AUTO-GENERATE PARTNER PASSWORD MODAL */}
       {resetPartner && (
