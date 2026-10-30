@@ -11,9 +11,46 @@ export const SOCKET_URL = API_BASE_URL.replace(/\/api\/?$/, '');
  * Token Helpers
  */
 export const getAdminToken = () => localStorage.getItem('kirsab_admin_token');
+
+export const getAdminUser = () => {
+  try {
+    const raw = localStorage.getItem('kirsab_admin_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const setAdminUser = (user) => {
+  if (user) localStorage.setItem('kirsab_admin_user', JSON.stringify(user));
+  else localStorage.removeItem('kirsab_admin_user');
+};
+
+export const getAdminActiveState = () => {
+  try {
+    return localStorage.getItem('kirsab_admin_active') === 'true';
+  } catch {
+    return false;
+  }
+};
+
+export const setAdminActiveState = (isActive) => {
+  if (isActive) localStorage.setItem('kirsab_admin_active', 'true');
+  else localStorage.removeItem('kirsab_admin_active');
+};
+
+export const clearAdminSession = () => {
+  localStorage.removeItem('kirsab_admin_token');
+  localStorage.removeItem('kirsab_admin_user');
+  localStorage.removeItem('kirsab_admin_active');
+};
+
 export const setAdminToken = (token) => {
-  if (token) localStorage.setItem('kirsab_admin_token', token);
-  else localStorage.removeItem('kirsab_admin_token');
+  if (token) {
+    localStorage.setItem('kirsab_admin_token', token);
+  } else {
+    clearAdminSession();
+  }
 };
 
 export const getCustomerToken = () => localStorage.getItem('kirsab_customer_token');

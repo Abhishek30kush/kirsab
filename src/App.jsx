@@ -20,7 +20,15 @@ import { CustomerPortalModal } from './components/customer/CustomerPortalModal';
 import { DeliveryPortal } from './components/delivery/DeliveryPortal';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { api, getAdminToken } from './utils/api';
+import { 
+  api, 
+  getAdminToken, 
+  getAdminUser, 
+  setAdminUser as setAdminUserStorage, 
+  getAdminActiveState, 
+  setAdminActiveState, 
+  clearAdminSession 
+} from './utils/api';
 
 function MainStoreContent({ onOpenAdmin, isAdminLoggedIn, onOpenDelivery }) {
   const { refreshCatalog } = useCart();
@@ -92,6 +100,7 @@ function MainAppShell({
   handleAdminTrigger,
 }) {
   const { refreshCatalog } = useCart();
+  const currentAdmin = adminUser || getAdminUser();
 
   if (isDeliveryView) {
     return (
@@ -106,14 +115,17 @@ function MainAppShell({
     );
   }
 
-  if (isAdminView && adminUser) {
+  if (isAdminView && currentAdmin) {
     return (
       <AdminDashboard
-        adminUser={adminUser}
+        adminUser={currentAdmin}
         onExitAdmin={() => {
           setIsAdminView(false);
+          setAdminActiveState(false);
           if (window.location.pathname.startsWith('/admin')) {
             window.history.pushState({}, '', '/');
+          } else if (window.location.hash === '#admin') {
+            window.location.hash = '';
           }
           refreshCatalog();
         }}
@@ -125,35 +137,75 @@ function MainAppShell({
   return (
     <MainStoreContent
       onOpenAdmin={handleAdminTrigger}
-      isAdminLoggedIn={Boolean(adminUser)}
+      isAdminLoggedIn={Boolean(currentAdmin && getAdminToken())}
       onOpenDelivery={() => setIsDeliveryView(true)}
     />
   );
 }
 
 export function App() {
-  const [adminUser, setAdminUser] = useState(null);
-  const [isAdminView, setIsAdminView] = useState(false);
+  // Synchronously initialize state from persistent localStorage so page refresh never drops admin view
+  const [adminUser, setAdminUser] = useState(() => getAdminUser());
+  const [isAdminView, setIsAdminView] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const token = getAdminToken();
+    if (!token) return false;
+    const path = window.location.pathname.replace(/\/+$/, '');
+    const hash = window.location.hash;
+    const search = window.location.search;
+    const isHashAdmin = hash === '#admin';
+    const isQueryAdmin = new URLSearchParams(search).get('admin') === 'true';
+    const isPathAdmin = path.startsWith('/admin');
+    const wasActive = getAdminActiveState();
+    return Boolean(token && (isHashAdmin || isQueryAdmin || isPathAdmin || wasActive));
+  });
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
-  const [isDeliveryView, setIsDeliveryView] = useState(false);
+  const [isDeliveryView, setIsDeliveryView] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname.replace(/\/+$/, '');
+    const hash = window.location.hash;
+    const search = window.location.search;
+    return path === '/delivery' || hash === '#delivery' || new URLSearchParams(search).get('delivery') === 'true';
+  });
 
-  // Check if admin is already logged in with stored JWT
+  // Verify session in background with server; keep session active if valid
   useEffect(() => {
-    const checkAuth = async () => {
+    const verifyAuth = async () => {
       const token = getAdminToken();
-      if (!token) return;
+      if (!token) {
+        setAdminUser(null);
+        setAdminActiveState(false);
+        return;
+      }
+
       try {
         const res = await api.getMe();
         if (res.success && res.user) {
           setAdminUser(res.user);
+          setAdminUserStorage(res.user);
         } else {
+          clearAdminSession();
           setAdminUser(null);
+          setIsAdminView(false);
         }
       } catch (err) {
-        setAdminUser(null);
+        // Only log out on authentic 401/403 unauthorized, never on temporary network drops
+        const msg = String(err?.message || '');
+        if (
+          msg.includes('401') ||
+          msg.includes('403') ||
+          msg.includes('Unauthorized') ||
+          msg.includes('Forbidden') ||
+          msg.includes('सत्र समाप्त') ||
+          msg.includes('प्रमाणीकरण')
+        ) {
+          clearAdminSession();
+          setAdminUser(null);
+          setIsAdminView(false);
+        }
       }
     };
-    checkAuth();
+    verifyAuth();
   }, []);
 
   // Handle URL path (/admin, /delivery), hash (#admin, #delivery), or query params
@@ -177,9 +229,12 @@ export function App() {
 
       if (isHashAdmin || isQueryAdmin || isPathAdmin) {
         const token = getAdminToken();
-        if (token && adminUser) {
+        const savedUser = getAdminUser();
+        if (token && (adminUser || savedUser)) {
           setIsAdminView(true);
-        } else {
+          setAdminActiveState(true);
+          setIsAdminLoginOpen(false);
+        } else if (!token) {
           setIsAdminLoginOpen(true);
         }
       }
@@ -195,8 +250,14 @@ export function App() {
   }, [adminUser]);
 
   const handleAdminTrigger = () => {
-    if (adminUser) {
+    const token = getAdminToken();
+    const savedUser = getAdminUser();
+    if (token && (adminUser || savedUser)) {
       setIsAdminView(true);
+      setAdminActiveState(true);
+      if (window.location.hash !== '#admin' && !window.location.pathname.startsWith('/admin')) {
+        window.location.hash = '#admin';
+      }
     } else {
       setIsAdminLoginOpen(true);
     }
@@ -204,7 +265,12 @@ export function App() {
 
   const handleLoginSuccess = (user) => {
     setAdminUser(user);
+    setAdminUserStorage(user);
+    setAdminActiveState(true);
     setIsAdminView(true);
+    if (window.location.hash !== '#admin' && !window.location.pathname.startsWith('/admin')) {
+      window.location.hash = '#admin';
+    }
   };
 
   return (

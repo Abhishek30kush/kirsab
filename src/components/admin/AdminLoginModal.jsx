@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Lock, Mail, AlertCircle, ShieldCheck, ArrowRight, KeyRound } from 'lucide-react';
-import { api, setAdminToken } from '../../utils/api';
+import { api, setAdminToken, setAdminUser, setAdminActiveState } from '../../utils/api';
 
 export const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -24,6 +24,8 @@ export const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
       const response = await api.login({ email: email.trim(), password });
       if (response.success && response.token) {
         setAdminToken(response.token);
+        setAdminUser(response.user);
+        setAdminActiveState(true);
         if (onLoginSuccess) {
           onLoginSuccess(response.user);
         }
