@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '../config/db.js';
-import { broadcastOrderStatusUpdated } from '../socket.js';
+import { broadcastOrderStatusUpdated, broadcastOrderAssignedToPartner } from '../socket.js';
+
 
 /**
  * Admin: List all delivery partners with order metrics
@@ -328,6 +329,14 @@ export const assignOrderDelivery = async (req, res) => {
 
     broadcastOrderStatusUpdated(updated.updatedOrder, updated.history).catch((e) =>
       console.error('Socket broadcast error on assignment:', e)
+    );
+
+    broadcastOrderAssignedToPartner(partner.id, updated.updatedOrder, {
+      isReassignment,
+      notes: auditNotes,
+      assignedBy: req.user?.name || 'Admin',
+    }).catch((e) =>
+      console.error('Socket broadcast error on partner assignment:', e)
     );
 
     const { deliveryPinHash, deliveryPinEncrypted, ...sanitized } = updated.updatedOrder;

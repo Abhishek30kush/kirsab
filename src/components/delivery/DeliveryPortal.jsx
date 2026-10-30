@@ -14,6 +14,10 @@ import {
   Package,
   ArrowRight,
   ExternalLink,
+  Bell,
+  BellRing,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import {
   api,
@@ -22,6 +26,12 @@ import {
   SOCKET_URL,
 } from '../../utils/api';
 import { io } from 'socket.io-client';
+import {
+  deliverySound,
+  requestNotificationPermission,
+  showBrowserNotification,
+  triggerVibration,
+} from '../../utils/deliverySound';
 
 export const DeliveryPortal = ({ onExit }) => {
   const [partner, setPartner] = useState(null);
@@ -35,6 +45,17 @@ export const DeliveryPortal = ({ onExit }) => {
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('active'); // 'active', 'delivered', 'all'
   const [loadingOrders, setLoadingOrders] = useState(false);
+
+  // Sound and Real-time Assignment Notification state
+  const [assignedAlert, setAssignedAlert] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(() => deliverySound.isSoundEnabled());
+  const [isRinging, setIsRinging] = useState(false);
+  const [notifPermission, setNotifPermission] = useState(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission;
+    }
+    return 'unsupported';
+  });
 
   // PIN verification modal state
   const [verifyingOrder, setVerifyingOrder] = useState(null);
@@ -61,6 +82,55 @@ export const DeliveryPortal = ({ onExit }) => {
     }
   }, [token, activeTab]);
 
+  // Unlock browser audio context on user gesture (first click or touch)
+  useEffect(() => {
+    const handleGesture = () => {
+      deliverySound.getAudioContext();
+    };
+    window.addEventListener('click', handleGesture, { once: true });
+    window.addEventListener('touchstart', handleGesture, { once: true });
+    return () => {
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
+    };
+  }, []);
+
+  // Trigger alert when an order is assigned to this partner
+  const triggerAssignmentAlert = useCallback((payload) => {
+    if (!payload) return;
+
+    // 1. Synthesize bell chime audio alert
+    deliverySound.playOrderRing(8000);
+    setIsRinging(true);
+
+    // 2. Hardware vibration
+    triggerVibration([400, 200, 400, 200, 800]);
+
+    // 3. System browser notification
+    const orderNum = payload.orderNumber || payload.order?.orderNumber || '';
+    const total = payload.finalTotal || payload.order?.finalTotal || '';
+    const customer = payload.customerName || payload.order?.customerName || 'Customer';
+    const address = payload.deliveryAddress || payload.order?.deliveryAddress || '';
+
+    showBrowserNotification(`🚨 नया ऑर्डर असाइन हुआ! #${orderNum}`, {
+      body: `राशि: ₹${total} • ग्राहक: ${customer}\nपता: ${address.slice(0, 50)}`,
+      tag: `kirsab-order-${orderNum}`,
+      onClick: () => {
+        setAssignedAlert(payload);
+        setActiveTab('active');
+        deliverySound.stop();
+        setIsRinging(false);
+      },
+    });
+
+    // 4. In-app banner & switch to active orders
+    setAssignedAlert(payload);
+    setActiveTab('active');
+
+    // 5. Reload orders list
+    loadOrders();
+  }, [loadOrders]);
+
   // Initial authentication check & Socket.IO initialization
   useEffect(() => {
     if (!token) return;
@@ -74,8 +144,22 @@ export const DeliveryPortal = ({ onExit }) => {
       transports: ['websocket', 'polling'],
     });
 
-    socket.on('partner:order_updated', () => {
-      loadOrders();
+    socket.on('connect', () => {
+      socket.emit('partner:join');
+    });
+
+    // High-priority event: an order was explicitly assigned to this delivery partner
+    socket.on('partner:order_assigned', (payload) => {
+      triggerAssignmentAlert(payload);
+    });
+
+    // Order updated event (e.g., status changes or assignments)
+    socket.on('partner:order_updated', (payload) => {
+      if (payload?.alert || payload?.historyEntry?.notes?.toLowerCase().includes('assign')) {
+        triggerAssignmentAlert(payload);
+      } else {
+        loadOrders();
+      }
     });
 
     socket.on('order:live_status', () => {
@@ -85,7 +169,7 @@ export const DeliveryPortal = ({ onExit }) => {
     return () => {
       socket.disconnect();
     };
-  }, [token, loadOrders]);
+  }, [token, loadOrders, triggerAssignmentAlert]);
 
   // Login handler
   const handleLogin = async (e) => {
@@ -290,6 +374,38 @@ export const DeliveryPortal = ({ onExit }) => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Sound Mute/Unmute Toggle */}
+            <button
+              onClick={() => {
+                const next = deliverySound.toggleSound();
+                setSoundEnabled(next);
+                if (next) deliverySound.testSound();
+              }}
+              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                soundEnabled
+                  ? 'bg-emerald-600/40 text-emerald-200 border border-emerald-400/30 hover:bg-emerald-600/60'
+                  : 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30'
+              }`}
+              title={soundEnabled ? 'साउंड ऑन है (Click to mute)' : 'साउंड म्यूट है (Click to unmute)'}
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <VolumeX className="w-4 h-4 text-rose-400" />
+              )}
+              <span className="hidden md:inline">{soundEnabled ? 'साउंड ऑन' : 'म्यूट'}</span>
+            </button>
+
+            {/* Test Bell Chime */}
+            <button
+              onClick={() => deliverySound.testSound()}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5"
+              title="टेस्ट रिंग (Test alert chime)"
+            >
+              <Bell className="w-4 h-4 text-amber-300" />
+              <span className="hidden sm:inline">टेस्ट रिंग</span>
+            </button>
+
             <button
               onClick={loadOrders}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5"
@@ -321,6 +437,84 @@ export const DeliveryPortal = ({ onExit }) => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        
+        {/* Real-time Order Assignment Alert Banner with Ringing Chime */}
+        {assignedAlert && (
+          <div className="bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 p-4 sm:p-5 rounded-3xl shadow-xl text-white animate-fade-in border-2 border-white/30 relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className={`w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 ${isRinging ? 'animate-bounce' : ''}`}>
+                  <BellRing className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white text-orange-900 text-[10px] font-black uppercase tracking-wider">
+                      {assignedAlert.isReassignment ? 'पुनः असाइन (Reassigned)' : 'नया ऑर्डर (New Assigned)'}
+                    </span>
+                    {isRinging && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-amber-100 animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping" />
+                        घंटी बज रही है...
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black mt-0.5">
+                    ऑर्डर #{assignedAlert.orderNumber || assignedAlert.order?.orderNumber} (₹{assignedAlert.finalTotal || assignedAlert.order?.finalTotal})
+                  </h3>
+                  <p className="text-xs text-white/90 line-clamp-1">
+                    ग्राहक: {assignedAlert.customerName || assignedAlert.order?.customerName} • {assignedAlert.deliveryAddress || assignedAlert.order?.deliveryAddress}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {isRinging && (
+                  <button
+                    onClick={() => {
+                      deliverySound.stop();
+                      setIsRinging(false);
+                    }}
+                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs backdrop-blur-sm transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <VolumeX className="w-4 h-4" />
+                    <span>घंटी बंद करें</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    deliverySound.stop();
+                    setIsRinging(false);
+                    setAssignedAlert(null);
+                    setActiveTab('active');
+                  }}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-white text-orange-900 hover:bg-orange-50 font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                >
+                  <span>ऑर्डर देखें</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Browser Notification Permission Banner (if not yet granted) */}
+        {notifPermission === 'default' && (
+          <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5 text-emerald-950 font-medium">
+              <Bell className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span>नया ऑर्डर आने पर लॉक स्क्रीन पर भी तुरंत घंटी और अलर्ट पाने के लिए अनुमति दें।</span>
+            </div>
+            <button
+              onClick={async () => {
+                const res = await requestNotificationPermission();
+                setNotifPermission(res);
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-700 text-white font-bold shrink-0 hover:bg-emerald-800 transition-all shadow-xs"
+            >
+              अनुमति दें
+            </button>
+          </div>
+        )}
         
         {/* Navigation Tabs */}
         <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-xs">

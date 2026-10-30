@@ -118,6 +118,19 @@ export function initSocket(httpServer, corsConfig = {}) {
       }
     });
 
+    // Allow authenticated delivery partner to register their private partner room
+    socket.on('partner:join', async () => {
+      try {
+        if (socket.data.user?.id && socket.data.isDeliveryPartner) {
+          socket.join(`partner_${socket.data.user.id}`);
+          socket.join('delivery_channel');
+          socket.emit('partner:joined_room', { partnerId: socket.data.user.id });
+        }
+      } catch (e) {
+        console.error('Error joining partner room:', e);
+      }
+    });
+
     // Handle Admin Refresh Request
     socket.on('admin:request_snapshot', async () => {
       if (!socket.data.isAdmin) return;
@@ -250,4 +263,45 @@ export function broadcastCatalogUpdated(changeDetails = {}) {
     console.error('Failed to broadcast catalog update:', err);
   }
 }
+
+/**
+ * Broadcast event when an order is assigned or reassigned to a delivery partner
+ * Emits high-priority assignment alert to partner's private channel and delivery channel
+ */
+export async function broadcastOrderAssignedToPartner(partnerId, order, meta = {}) {
+  if (!io || !partnerId) return;
+  try {
+    const { deliveryPinHash, deliveryPinEncrypted, ...safeOrder } = order;
+    const payload = {
+      order: safeOrder,
+      orderNumber: safeOrder.orderNumber,
+      customerName: safeOrder.customerName,
+      customerPhone: safeOrder.customerPhone,
+      deliveryAddress: safeOrder.deliveryAddress,
+      finalTotal: safeOrder.finalTotal,
+      isReassignment: Boolean(meta.isReassignment),
+      notes: meta.notes || '',
+      assignedBy: meta.assignedBy || 'Admin',
+      assignedAt: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+      alert: true,
+      title: '🚨 नया ऑर्डर असाइन हुआ! (New Order Assigned)',
+      message: `ऑर्डर #${safeOrder.orderNumber} (₹${safeOrder.finalTotal}) आपको डिलीवर करने के लिए सौंपा गया है।`,
+    };
+
+    // 1. Private high-priority event to the assigned partner's room
+    io.to(`partner_${partnerId}`).emit('partner:order_assigned', payload);
+    io.to(`partner_${partnerId}`).emit('partner:order_updated', payload);
+
+    // 2. Broadcast general event on delivery_channel
+    io.to('delivery_channel').emit('delivery:order_assigned', {
+      partnerId,
+      orderNumber: safeOrder.orderNumber,
+      timestamp: payload.timestamp,
+    });
+  } catch (err) {
+    console.error('Failed to broadcast order assigned to partner:', err);
+  }
+}
+
 
