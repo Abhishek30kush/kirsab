@@ -92,7 +92,6 @@ export const apiRequest = async (endpoint, options = {}) => {
 
   const headers = {
     'Content-Type': 'application/json',
-    ...(isGet ? { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
