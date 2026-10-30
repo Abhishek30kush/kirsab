@@ -1,4 +1,5 @@
 import { prisma } from '../config/db.js';
+import { broadcastCatalogUpdated } from '../socket.js';
 
 /**
  * Helper to ensure a default settings record always exists
@@ -52,6 +53,10 @@ export const getOrCreateSettings = async () => {
  */
 export const getPublicSettings = async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const rawSettings = await getOrCreateSettings();
 
     let deliverySlots = [];
@@ -179,6 +184,8 @@ export const updateSettingsAdmin = async (req, res) => {
         ...updateData,
       },
     });
+
+    broadcastCatalogUpdated({ action: 'settings_updated', settings: updated });
 
     return res.json({
       success: true,

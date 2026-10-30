@@ -36,6 +36,7 @@ import { AdminDeliveryManagement } from './AdminDeliveryManagement';
 import { OffersManagement } from './OffersManagement';
 import { formatCurrency } from '../../utils/currency';
 import { getFreshImageUrl } from '../../utils/image';
+import { STORE_CONFIG } from '../../config/store';
 
 export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => {
   const [activeTab, setActiveTab] = useState(() => {
@@ -71,9 +72,24 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
   const [orderFilterStatus, setOrderFilterStatus] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
 
-  // Settings state
-  const [settingsForm, setSettingsForm] = useState(null);
+  // Settings state: initialize synchronously with local configuration so it is NEVER blank
+  const [settingsForm, setSettingsForm] = useState(() => ({
+    brandName: STORE_CONFIG.brandName || 'KIRSAB',
+    brandNameHindi: STORE_CONFIG.brandNameHindi || 'किरसाब',
+    tagline: STORE_CONFIG.tagline || 'सब्ज़ी | किराना | घर तक',
+    whatsappNumber: STORE_CONFIG.whatsappNumber || '',
+    serviceAreaPrimary: STORE_CONFIG.serviceArea?.primary || 'Shervani Legacy',
+    serviceAreaCity: STORE_CONFIG.serviceArea?.city || 'Prayagraj',
+    serviceAreaState: STORE_CONFIG.serviceArea?.state || 'Uttar Pradesh',
+    serviceAreaPincode: STORE_CONFIG.serviceArea?.pincode || '211011',
+    serviceAreaDescription: STORE_CONFIG.serviceArea?.description || '',
+    minOrderValue: STORE_CONFIG.pricingRules?.minOrderValue ?? 150,
+    standardDeliveryFee: STORE_CONFIG.pricingRules?.standardDeliveryFee ?? 10,
+    freeDeliveryThreshold: STORE_CONFIG.pricingRules?.freeDeliveryThreshold ?? 299,
+    isStoreOpen: true,
+  }));
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
 
   // Loading & Feedback
   const [isLoading, setIsLoading] = useState(false);
@@ -125,36 +141,44 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
     }
   }, []);
 
-  // Fetch store settings
+  // Fetch store settings from backend database
   const fetchSettings = useCallback(async () => {
     try {
+      setIsLoadingSettings(true);
       const res = await api.getSettings();
-      if (res.success && res.data) {
+      if (res && res.success && res.data) {
         const d = res.data;
         setSettingsForm({
-          brandName: d.brandName || 'KIRSAB',
-          brandNameHindi: d.brandNameHindi || 'किरसाब',
-          tagline: d.tagline || 'सब्ज़ी | किराना | घर तक',
-          whatsappNumber: d.whatsappNumber || '',
-          serviceAreaPrimary: d.serviceArea?.primary || 'Shervani Legacy',
-          serviceAreaCity: d.serviceArea?.city || 'Prayagraj',
-          serviceAreaState: d.serviceArea?.state || 'Uttar Pradesh',
-          serviceAreaPincode: d.serviceArea?.pincode || '211011',
-          serviceAreaDescription: d.serviceArea?.description || '',
-          minOrderValue: d.pricingRules?.minOrderValue || 150,
-          standardDeliveryFee: d.pricingRules?.standardDeliveryFee || 10,
-          freeDeliveryThreshold: d.pricingRules?.freeDeliveryThreshold || 299,
+          brandName: d.brandName || STORE_CONFIG.brandName || 'KIRSAB',
+          brandNameHindi: d.brandNameHindi || STORE_CONFIG.brandNameHindi || 'किरसाब',
+          tagline: d.tagline || STORE_CONFIG.tagline || 'सब्ज़ी | किराना | घर तक',
+          whatsappNumber: d.whatsappNumber || STORE_CONFIG.whatsappNumber || '',
+          serviceAreaPrimary: d.serviceArea?.primary || STORE_CONFIG.serviceArea?.primary || 'Shervani Legacy',
+          serviceAreaCity: d.serviceArea?.city || STORE_CONFIG.serviceArea?.city || 'Prayagraj',
+          serviceAreaState: d.serviceArea?.state || STORE_CONFIG.serviceArea?.state || 'Uttar Pradesh',
+          serviceAreaPincode: d.serviceArea?.pincode || STORE_CONFIG.serviceArea?.pincode || '211011',
+          serviceAreaDescription: d.serviceArea?.description || STORE_CONFIG.serviceArea?.description || '',
+          minOrderValue: d.pricingRules?.minOrderValue ?? STORE_CONFIG.pricingRules?.minOrderValue ?? 150,
+          standardDeliveryFee: d.pricingRules?.standardDeliveryFee ?? STORE_CONFIG.pricingRules?.standardDeliveryFee ?? 10,
+          freeDeliveryThreshold: d.pricingRules?.freeDeliveryThreshold ?? STORE_CONFIG.pricingRules?.freeDeliveryThreshold ?? 299,
           isStoreOpen: d.isStoreOpen !== false,
         });
       }
     } catch (err) {
-      console.error('Failed to fetch settings:', err);
+      console.warn('Could not load remote settings, using local configuration:', err);
+    } finally {
+      setIsLoadingSettings(false);
     }
   }, []);
 
-  // Load data based on active tab
+  // Load initial overview stats and settings on mount
   useEffect(() => {
     fetchStats();
+    fetchSettings();
+  }, [fetchStats, fetchSettings]);
+
+  // Load data based on active tab
+  useEffect(() => {
     if (activeTab === 'overview') fetchStats();
     if (activeTab === 'products') fetchProducts();
     if (activeTab === 'orders') fetchOrders();
@@ -907,16 +931,34 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
         )}
 
         {/* 4. SETTINGS TAB */}
-        {activeTab === 'settings' && settingsForm && (
+        {activeTab === 'settings' && (
           <div className="bg-white p-6 rounded-3xl border border-brand-border shadow-xs max-w-3xl mx-auto space-y-6">
             
-            <div>
-              <h3 className="font-extrabold text-lg text-brand-charcoal">
-                Store Configuration & Delivery Rules
-              </h3>
-              <p className="text-xs text-brand-muted mt-0.5">
-                Settings updated here apply directly to the customer website and WhatsApp checkout.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-extrabold text-lg text-brand-charcoal flex items-center gap-2">
+                  <span>Store Configuration & Delivery Rules</span>
+                  {isLoadingSettings && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      Syncing...
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-brand-muted mt-0.5">
+                  Settings updated here apply directly to the customer website and WhatsApp checkout.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchSettings}
+                disabled={isLoadingSettings}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-border text-xs font-bold text-brand-charcoal hover:bg-brand-soft transition-all disabled:opacity-50 self-start sm:self-auto"
+                title="Reload settings from database"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingSettings ? 'animate-spin' : ''}`} />
+                <span>{isLoadingSettings ? 'Syncing...' : 'Refresh'}</span>
+              </button>
             </div>
 
             <form onSubmit={handleSaveSettings} className="space-y-4">
