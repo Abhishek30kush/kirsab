@@ -113,7 +113,7 @@ export const getEnrichedCartItems = (
  */
 export const calculateCartTotals = (enrichedItems = [], storeConfig = STORE_CONFIG) => {
   const pricingRules = storeConfig?.pricingRules || STORE_CONFIG.pricingRules;
-  const { minOrderValue = 150, standardDeliveryFee = 10, freeDeliveryThreshold = 299 } = pricingRules;
+  const { minOrderValue = 49, standardDeliveryFee = 10, freeDeliveryThreshold = 99 } = pricingRules;
 
   // Only sum items that are in stock and have configured valid prices
   const validItems = enrichedItems.filter(item => item.isValidForCheckout);

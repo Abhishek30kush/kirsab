@@ -38,11 +38,11 @@ export const STORE_CONFIG = {
     currencySymbol: '₹',
     currencyCode: 'INR',
     // न्यूनतम ऑर्डर मूल्य (Minimum order value in Rupees)
-    minOrderValue: 150,
+    minOrderValue: 49,
     // डिलीवरी शुल्क (Delivery fee for orders below free delivery threshold)
     standardDeliveryFee: 10,
     // मुफ्त डिलीवरी के लिए न्यूनतम राशि (Free delivery on and above this amount)
-    freeDeliveryThreshold: 299,
+    freeDeliveryThreshold: 99,
   },
 
   // Delivery Slots Available for Selection (डिलीवरी स्लॉट्स)
