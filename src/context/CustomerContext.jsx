@@ -16,8 +16,34 @@ export const CustomerProvider = ({ children }) => {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isCustomerPortalOpen, setIsCustomerPortalOpen] = useState(false);
-  const [activePortalTab, setActivePortalTab] = useState('orders'); // 'orders', 'addresses', 'profile'
+  const [activePortalTab, setActivePortalTab] = useState('orders'); // 'orders', 'addresses', 'profile', 'reviews'
   const [socket, setSocket] = useState(null);
+
+  // Review Modal State
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewModalConfig, setReviewModalConfig] = useState({
+    order: null,
+    existingReview: null,
+    preselectedProductId: null,
+  });
+
+  const openReviewModal = useCallback((order, existingReview = null, preselectedProductId = null) => {
+    setReviewModalConfig({
+      order,
+      existingReview,
+      preselectedProductId,
+    });
+    setIsReviewModalOpen(true);
+  }, []);
+
+  const closeReviewModal = useCallback(() => {
+    setIsReviewModalOpen(false);
+    setReviewModalConfig({
+      order: null,
+      existingReview: null,
+      preselectedProductId: null,
+    });
+  }, []);
 
   // Load customer profile and addresses
   const refreshCustomerData = useCallback(async () => {
@@ -110,6 +136,15 @@ export const CustomerProvider = ({ children }) => {
       }
     });
 
+    // Real-time review moderation updates for this customer
+    newSocket.on('customer:review_status_updated', (data) => {
+      window.dispatchEvent(new CustomEvent('kirsab:reviews_updated', { detail: data }));
+    });
+
+    newSocket.on('customer:review_reply_received', (data) => {
+      window.dispatchEvent(new CustomEvent('kirsab:reviews_updated', { detail: data }));
+    });
+
     setSocket(newSocket);
 
     return () => {
@@ -180,6 +215,10 @@ export const CustomerProvider = ({ children }) => {
         refreshCustomerData,
         refreshCustomerOrders,
         socket,
+        isReviewModalOpen,
+        reviewModalConfig,
+        openReviewModal,
+        closeReviewModal,
       }}
     >
       {children}

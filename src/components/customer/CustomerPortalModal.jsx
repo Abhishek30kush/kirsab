@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Package,
@@ -17,11 +17,16 @@ import {
   ChevronRight,
   Truck,
   RotateCcw,
+  Star,
+  Sparkles,
+  MessageSquare,
+  ShieldCheck,
 } from 'lucide-react';
 import { useCustomer } from '../../context/CustomerContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { api } from '../../utils/api';
 import { YourDeliveryPartnerCard } from './YourDeliveryPartnerCard';
+import { StarRating } from '../common/StarRating';
 
 
 const STATUS_STEPS = [
@@ -45,9 +50,48 @@ export const CustomerPortalModal = () => {
     logoutCustomer,
     refreshCustomerData,
     refreshCustomerOrders,
+    openReviewModal,
   } = useCustomer();
   const { language } = useLanguage();
   const isHi = language === 'hi';
+
+  // Customer Reviews state
+  const [myReviews, setMyReviews] = useState([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+
+  const loadMyReviews = async () => {
+    try {
+      setIsLoadingReviews(true);
+      const res = await api.getMyReviews();
+      if (res.success) {
+        setMyReviews(res.reviews || []);
+      }
+    } catch (e) {
+      console.error('Failed to load my reviews:', e);
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isCustomerPortalOpen) {
+      loadMyReviews();
+    }
+  }, [isCustomerPortalOpen]);
+
+  useEffect(() => {
+    const handleUpdate = () => loadMyReviews();
+    window.addEventListener('kirsab:reviews_updated', handleUpdate);
+    return () => window.removeEventListener('kirsab:reviews_updated', handleUpdate);
+  }, []);
+
+  // Map of reviews by orderId for quick lookup
+  const userReviewsMap = {};
+  myReviews.forEach((r) => {
+    if (r.orderId) {
+      userReviewsMap[r.orderId] = r;
+    }
+  });
 
   // Address form modal state
   const [isAddressFormOpen, setIsAddressFormOpen] = useState(false);
@@ -247,6 +291,23 @@ export const CustomerPortalModal = () => {
             <span className="px-2 py-0.5 rounded-full bg-brand-soft text-brand-charcoal text-[11px] font-black">
               {addresses.length}
             </span>
+          </button>
+
+          <button
+            onClick={() => setActivePortalTab('reviews')}
+            className={`py-3.5 px-4 text-xs sm:text-sm font-extrabold border-b-2 flex items-center gap-2 transition-all ${
+              activePortalTab === 'reviews'
+                ? 'border-emerald-700 text-emerald-900 bg-white shadow-2xs'
+                : 'border-transparent text-brand-muted hover:text-brand-charcoal'
+            }`}
+          >
+            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span>{isHi ? 'मेरी समीक्षाएं' : 'My Reviews'}</span>
+            {myReviews.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[11px] font-black">
+                {myReviews.length}
+              </span>
+            )}
           </button>
 
           <button
@@ -490,6 +551,35 @@ export const CustomerPortalModal = () => {
                           )}
                         </div>
                       )}
+
+                      {/* Review & Rating Action for Delivered Orders */}
+                      {ord.status === 'delivered' && (
+                        <div className="mt-4 pt-3 border-t border-brand-border/60 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-bold">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>
+                              {isHi ? 'ऑर्डर सफलतापूर्वक डिलीवर हुआ' : 'Delivered & Eligible for Review'}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => openReviewModal(ord, userReviewsMap[ord.id])}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95 ${
+                              userReviewsMap[ord.id]
+                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
+                                : 'bg-[#176B3A] hover:bg-[#2E8B57] text-white'
+                            }`}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${userReviewsMap[ord.id] ? 'text-amber-500 fill-amber-500' : 'text-yellow-300 fill-yellow-300'}`} />
+                            <span>
+                              {userReviewsMap[ord.id]
+                                ? isHi ? 'समीक्षा देखें / बदलें' : 'View / Edit Review'
+                                : isHi ? 'रेटिंग व समीक्षा दें' : 'Rate & Review Order'}
+                            </span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -652,6 +742,226 @@ export const CustomerPortalModal = () => {
                     : (isHi ? 'परिवर्तन सहेजें' : 'Save Changes')}
                 </button>
               </form>
+            </div>
+          )}
+
+          {/* TAB 4: MY REVIEWS & TESTIMONIALS */}
+          {activePortalTab === 'reviews' && (
+            <div className="space-y-5">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-brand-border">
+                <div>
+                  <h3 className="font-extrabold text-base text-brand-dark flex items-center gap-2">
+                    <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                    <span>{isHi ? 'मेरी समीक्षाएं एवं रेटिंग्स' : 'My Reviews & Experiences'}</span>
+                  </h3>
+                  <p className="text-xs text-brand-muted">
+                    {isHi
+                      ? 'आपके द्वारा दर्ज की गई समीक्षाएं और किरसाब टीम की आधिकारिक प्रतिक्रियाएं।'
+                      : 'Track your submitted reviews, status updates, and official responses from KIRSAB.'}
+                  </p>
+                </div>
+
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl w-fit">
+                  {myReviews.length} {isHi ? 'समीक्षाएं दर्ज' : 'Reviews Submitted'}
+                </span>
+              </div>
+
+              {/* Unreviewed Delivered Orders Banner */}
+              {(() => {
+                const unreviewedOrders = orders.filter(
+                  (o) => o.status === 'delivered' && !userReviewsMap[o.id]
+                );
+                if (unreviewedOrders.length === 0) return null;
+
+                return (
+                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-black text-[#176B3A]">
+                      <Sparkles className="w-4 h-4 text-emerald-600" />
+                      <span>
+                        {isHi
+                          ? `आपके ${unreviewedOrders.length} डिलीवर हो चुके ऑर्डर्स समीक्षा हेतु तैयार हैं!`
+                          : `You have ${unreviewedOrders.length} delivered order(s) ready for review!`}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {unreviewedOrders.slice(0, 3).map((ord) => (
+                        <div
+                          key={ord.id}
+                          className="bg-white rounded-xl p-3 border border-emerald-100 flex items-center justify-between gap-3 text-xs shadow-xs"
+                        >
+                          <div>
+                            <span className="font-extrabold text-brand-charcoal block">
+                              Order #{ord.orderNumber}
+                            </span>
+                            <span className="text-[11px] text-brand-muted">
+                              Delivered:{' '}
+                              {ord.deliveredAt
+                                ? new Date(ord.deliveredAt).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                  })
+                                : 'Recent'}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => openReviewModal(ord)}
+                            className="px-3 py-1.5 bg-[#176B3A] hover:bg-[#2E8B57] text-white font-bold rounded-lg shadow-xs flex items-center gap-1 active:scale-95 transition-all text-xs"
+                          >
+                            <Star className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+                            <span>{isHi ? 'समीक्षा लिखें' : 'Write Review'}</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Reviews List */}
+              {myReviews.length === 0 ? (
+                <div className="text-center py-12 px-4 bg-white rounded-3xl border border-dashed border-brand-border space-y-2">
+                  <Star className="w-10 h-10 text-amber-400 mx-auto opacity-70" />
+                  <h4 className="font-extrabold text-base text-brand-dark">
+                    {isHi ? 'अभी तक कोई समीक्षा नहीं लिखी गई है' : 'No reviews submitted yet'}
+                  </h4>
+                  <p className="text-xs text-brand-muted max-w-sm mx-auto">
+                    {isHi
+                      ? 'डिलीवर हुए ऑर्डर्स के बाद अपने अनुभव की समीक्षा साझा करें।'
+                      : 'Delivered orders will appear here for you to share your feedback.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myReviews.map((rev) => (
+                    <div
+                      key={rev.id}
+                      className="bg-white rounded-2xl border border-brand-border p-4 sm:p-5 shadow-xs space-y-3"
+                    >
+                      {/* Review Card Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 border-b border-gray-100 pb-2.5">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <StarRating rating={rev.rating} size="sm" showLabel isHindi={isHi} />
+                            {rev.isVerifiedPurchase && (
+                              <span className="inline-flex items-center gap-1 bg-emerald-50 text-[#176B3A] text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200">
+                                <ShieldCheck className="w-3 h-3 text-[#176B3A]" />
+                                <span>{isHi ? 'सत्यापित खरीद' : 'Verified Purchase'}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-[11px] text-brand-muted flex items-center gap-2">
+                            <span>Order #{rev.order?.orderNumber}</span>
+                            <span>•</span>
+                            <span>
+                              {new Date(rev.createdAt).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Status badge */}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                              rev.status === 'APPROVED'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : rev.status === 'PENDING'
+                                ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                                : rev.status === 'REJECTED'
+                                ? 'bg-red-100 text-red-800 border border-red-200'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {rev.status === 'APPROVED'
+                              ? isHi ? 'स्वीकृत (Live)' : 'Approved'
+                              : rev.status === 'PENDING'
+                              ? isHi ? 'समीक्षाधीन (Under Review)' : 'Pending Moderation'
+                              : rev.status === 'REJECTED'
+                              ? isHi ? 'अस्वीकृत' : 'Rejected'
+                              : rev.status}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => openReviewModal(rev.order, rev, rev.productId)}
+                            className="p-1 text-brand-muted hover:text-[#176B3A] hover:bg-emerald-50 rounded-lg transition-colors"
+                            title={isHi ? 'समीक्षा संपादित करें' : 'Edit Review'}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Title & Comment */}
+                      {rev.title && (
+                        <h4 className="text-xs sm:text-sm font-bold text-brand-charcoal">
+                          {rev.title}
+                        </h4>
+                      )}
+
+                      <p className="text-xs text-brand-charcoal/90 leading-relaxed italic bg-gray-50/70 p-3 rounded-xl border border-gray-100">
+                        "{rev.comment}"
+                      </p>
+
+                      {/* Aspect Badges */}
+                      {(rev.productQualityRating || rev.packagingRating || rev.deliveryRating) && (
+                        <div className="flex flex-wrap gap-1.5 text-xs">
+                          {rev.productQualityRating && (
+                            <span className="text-[10px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-md border border-emerald-100">
+                              Freshness: {rev.productQualityRating}★
+                            </span>
+                          )}
+                          {rev.packagingRating && (
+                            <span className="text-[10px] bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-md border border-amber-100">
+                              Packaging: {rev.packagingRating}★
+                            </span>
+                          )}
+                          {rev.deliveryRating && (
+                            <span className="text-[10px] bg-blue-50 text-blue-800 font-bold px-2 py-0.5 rounded-md border border-blue-100">
+                              Delivery: {rev.deliveryRating}★
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Attached images */}
+                      {rev.images && rev.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {rev.images.map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt="Review thumbnail"
+                              className="w-12 h-12 rounded-lg object-cover border border-brand-border"
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Official KIRSAB Response */}
+                      {rev.adminReply && (
+                        <div className="bg-[#F7FAF5] border border-emerald-200 rounded-xl p-3 text-xs space-y-1">
+                          <span className="font-black text-[#176B3A] flex items-center gap-1.5 text-[11px]">
+                            <MessageSquare className="w-3.5 h-3.5 text-[#176B3A]" />
+                            <span>
+                              {isHi ? 'किरसाब टीम की आधिकारिक प्रतिक्रिया' : 'Official KIRSAB Response'}
+                            </span>
+                          </span>
+                          <p className="text-xs text-brand-charcoal italic">{rev.adminReply}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

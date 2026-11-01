@@ -27,7 +27,8 @@ import {
   Calculator,
   Activity,
   Tag,
-  Globe
+  Globe,
+  Star
 } from 'lucide-react';
 import { api, setAdminToken } from '../../utils/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -36,6 +37,7 @@ import { PricingCalculator } from './PricingCalculator';
 import { OrderAnalyticsLive } from './OrderAnalyticsLive';
 import { AdminDeliveryManagement } from './AdminDeliveryManagement';
 import { OffersManagement } from './OffersManagement';
+import { ReviewsManagement } from './ReviewsManagement';
 import { formatCurrency } from '../../utils/currency';
 import { getFreshImageUrl } from '../../utils/image';
 import { STORE_CONFIG } from '../../config/store';
@@ -61,6 +63,9 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
       }
       if (path === '/admin/offers' || hash === '#offers') {
         return 'offers';
+      }
+      if (path === '/admin/reviews' || hash === '#reviews') {
+        return 'reviews';
       }
     }
     return 'overview';
@@ -453,6 +458,22 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
             >
               <Truck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Delivery Management</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('reviews');
+                if (typeof window !== 'undefined') {
+                  window.history.pushState({}, '', '/admin/reviews');
+                }
+              }}
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'reviews' ? 'bg-white text-brand-dark shadow-xs' : 'text-white/80 hover:bg-white/10'
+              }`}
+            >
+              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span>Reviews & Testimonials</span>
             </button>
 
             <button
@@ -1143,6 +1164,11 @@ export const AdminDashboard = ({ adminUser, onExitAdmin, onCatalogChanged }) => 
           <OffersManagement
             onCatalogChanged={onCatalogChanged}
           />
+        )}
+
+        {/* 9. REVIEWS & TESTIMONIALS TAB */}
+        {activeTab === 'reviews' && (
+          <ReviewsManagement />
         )}
 
       </main>

@@ -36,6 +36,10 @@ export const getPublicProducts = async (req, res) => {
             displayOrder: true,
           },
         },
+        reviews: {
+          where: { status: 'APPROVED' },
+          select: { rating: true },
+        },
       },
       orderBy: [
         { category: { displayOrder: 'asc' } },
@@ -60,6 +64,11 @@ export const getPublicProducts = async (req, res) => {
     );
 
     const enrichedProducts = products.map(prod => {
+      const totalApprovedReviews = prod.reviews?.length || 0;
+      const avgRating = totalApprovedReviews > 0
+        ? Number((prod.reviews.reduce((acc, r) => acc + r.rating, 0) / totalApprovedReviews).toFixed(1))
+        : null;
+
       const bestOffer = resolveBestOfferForProduct({
         product: prod,
         activeOffers: eligibleOffers,
@@ -70,6 +79,9 @@ export const getPublicProducts = async (req, res) => {
       if (bestOffer && bestOffer.eligible && bestOffer.discountPerUnit > 0) {
         return {
           ...prod,
+          reviews: undefined,
+          averageRating: avgRating,
+          reviewsCount: totalApprovedReviews,
           originalPrice: prod.price,
           discountedPrice: bestOffer.finalUnitPrice,
           discountPerUnit: bestOffer.discountPerUnit,
@@ -88,6 +100,9 @@ export const getPublicProducts = async (req, res) => {
 
       return {
         ...prod,
+        reviews: undefined,
+        averageRating: avgRating,
+        reviewsCount: totalApprovedReviews,
         originalPrice: prod.price,
         discountedPrice: prod.price,
         discountPerUnit: 0,

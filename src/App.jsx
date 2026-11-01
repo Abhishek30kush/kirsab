@@ -7,6 +7,7 @@ import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ServiceAreaNotice } from './components/ServiceAreaNotice';
 import { ProductSection } from './components/ProductSection';
+import { TestimonialsSection } from './components/reviews/TestimonialsSection';
 import { LiveOrderCounter } from './components/LiveOrderCounter';
 import { HowItWorks } from './components/HowItWorks';
 import { FaqSection } from './components/FaqSection';
@@ -17,6 +18,7 @@ import { MobileCartBar } from './components/MobileCartBar';
 import { Toast } from './components/Toast';
 import { CustomerAuthModal } from './components/customer/CustomerAuthModal';
 import { CustomerPortalModal } from './components/customer/CustomerPortalModal';
+import { ReviewFormModal } from './components/reviews/ReviewFormModal';
 import { DeliveryPortal } from './components/delivery/DeliveryPortal';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -32,6 +34,7 @@ import {
 
 function MainStoreContent({ onOpenAdmin, isAdminLoggedIn, onOpenDelivery }) {
   const { refreshCatalog } = useCart();
+  const { isReviewModalOpen, closeReviewModal, reviewModalConfig } = useCustomer();
 
   const scrollToCatalogue = () => {
     const el = document.getElementById('catalogue');
@@ -68,6 +71,9 @@ function MainStoreContent({ onOpenAdmin, isAdminLoggedIn, onOpenDelivery }) {
         {/* Product Catalogue & Filter */}
         <ProductSection />
 
+        {/* What Our Customers Say - Dynamic Testimonials */}
+        <TestimonialsSection />
+
         {/* 3-Step Ordering Walkthrough */}
         <HowItWorks />
 
@@ -87,6 +93,18 @@ function MainStoreContent({ onOpenAdmin, isAdminLoggedIn, onOpenDelivery }) {
       {/* Customer Account & Order History Modals (Module 1 & 2) */}
       <CustomerAuthModal />
       <CustomerPortalModal />
+
+      {/* Customer Review & Testimonial Submission Modal */}
+      <ReviewFormModal
+        isOpen={isReviewModalOpen}
+        onClose={closeReviewModal}
+        order={reviewModalConfig.order}
+        existingReview={reviewModalConfig.existingReview}
+        preselectedProductId={reviewModalConfig.preselectedProductId}
+        onReviewSubmitted={() => {
+          window.dispatchEvent(new CustomEvent('kirsab:reviews_updated'));
+        }}
+      />
     </div>
   );
 }

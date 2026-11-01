@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Check, AlertCircle, Sparkles, Tag, Eye } from 'lucide-react';
+import { Plus, Check, AlertCircle, Sparkles, Tag, Eye, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
 import { QuantitySelector } from './QuantitySelector';
@@ -131,6 +131,13 @@ export const ProductCard = ({ product }) => {
             <span className="inline-block text-xs font-medium text-brand-dark bg-brand-soft px-2 py-0.5 rounded-md">
               {prodInfo.unit}
             </span>
+            {product.averageRating && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                <span>{product.averageRating}</span>
+                <span className="text-[10px] text-brand-muted font-normal">({product.reviewsCount})</span>
+              </span>
+            )}
             {hasOffer && product.activeOffer?.minQuantity > 1 && (
               <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
                 Min {product.activeOffer.minQuantity} {prodInfo.unitShort}

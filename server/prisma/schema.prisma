@@ -54,6 +54,7 @@ model Product {
   pricingCalculations PricingCalculation[]
   competitorPrices    CompetitorPrice[]
   offers              OfferProduct[]
+  reviews             Review[]
 
   @@index([categoryId])
   @@index([inStock, isConfigured, isActive])
@@ -210,6 +211,7 @@ model Order {
 
   // Delivery verification and assignment audit logs
   verificationAudits   DeliveryVerificationAudit[]
+  reviews              Review[]
 
   @@index([orderNumber])
   @@index([status])
@@ -236,6 +238,7 @@ model User {
   orders               Order[]                     @relation("CustomerOrders")
   assignedDeliveries   Order[]                     @relation("DeliveryPartnerOrders")
   auditActions         DeliveryVerificationAudit[]
+  reviews              Review[]
 
   @@index([phone])
   @@index([email])
@@ -354,5 +357,39 @@ model OfferProduct {
   @@unique([offerId, productId])
   @@index([productId])
   @@index([offerId])
+}
+
+model Review {
+  id                   String    @id @default(cuid())
+  customerId           String
+  customer             User      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orderId              String
+  order                Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId            String?
+  product              Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  rating               Int       // 1 to 5 stars
+  title                String?
+  comment              String    // Written customer feedback
+  productQualityRating Int?      // 1 to 5 stars (freshness / quality feedback)
+  packagingRating      Int?      // 1 to 5 stars (packaging feedback)
+  deliveryRating       Int?      // 1 to 5 stars (delivery feedback)
+  images               String[]  @default([]) // Securely validated review photo URLs or compressed data URLs
+  status               String    @default("PENDING") // PENDING, APPROVED, REJECTED, HIDDEN
+  isVerifiedPurchase   Boolean   @default(true)
+  isFeatured           Boolean   @default(false)
+  adminReply           String?
+  adminRepliedAt       DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([orderId])
+  @@index([productId])
+  @@index([status])
+  @@index([rating])
+  @@index([isFeatured])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([status, isFeatured])
 }
 

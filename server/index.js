@@ -12,6 +12,8 @@ import customerRoutes from './routes/customerRoutes.js';
 import deliveryRoutes from './routes/deliveryRoutes.js';
 import adminDeliveryRoutes from './routes/adminDeliveryRoutes.js';
 import offerRoutes from './routes/offerRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import adminReviewRoutes from './routes/adminReviewRoutes.js';
 import { getPublicOrderStats } from './controllers/orderController.js';
 import { generalApiLimiter } from './middleware/rateLimiter.js';
 import { initSocket } from './socket.js';
@@ -65,8 +67,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Body Parser
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Apply general rate limiter
 app.use('/api', generalApiLimiter);
@@ -104,6 +106,8 @@ app.use('/api/customer', customerRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/admin/delivery', adminDeliveryRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/admin/reviews', adminReviewRoutes);
 
 // 404 Handler for undefined API routes
 app.use('/api/*', (req, res) => {
