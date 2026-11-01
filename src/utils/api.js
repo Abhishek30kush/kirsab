@@ -72,7 +72,13 @@ export const apiRequest = async (endpoint, options = {}) => {
   let token = options.token;
 
   if (!token) {
-    if (endpoint.startsWith('/customer')) {
+    if (
+      endpoint.startsWith('/customer') ||
+      (endpoint === '/reviews' && options.method === 'POST') ||
+      endpoint.startsWith('/reviews/my-reviews') ||
+      endpoint.startsWith('/reviews/eligible-orders') ||
+      (endpoint.startsWith('/reviews') && options.method === 'PATCH')
+    ) {
       token = getCustomerToken();
     } else if (endpoint.startsWith('/delivery')) {
       token = getDeliveryToken();
@@ -292,5 +298,42 @@ export const api = {
   deleteOffer: (id) => apiRequest(`/offers/admin/${id}`, {
     method: 'DELETE',
   }),
+
+  // Customer Reviews & Ratings
+  submitReview: (payload) => apiRequest('/reviews', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getMyReviews: () => apiRequest('/reviews/my-reviews'),
+  updateMyReview: (reviewId, payload) => apiRequest(`/reviews/${reviewId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }),
+  getEligibleOrdersForReview: () => apiRequest('/reviews/eligible-orders'),
+
+  // Public Testimonials & Reviews
+  getPublicReviews: (params = '') => apiRequest(`/reviews${params ? (params.startsWith('?') ? params : `?${params}`) : ''}`),
+  getFeaturedReviews: (limit = 6) => apiRequest(`/reviews/featured?limit=${limit}`),
+  getPublicReviewStats: () => apiRequest('/reviews/stats'),
+  getProductReviews: (productId, params = '') => apiRequest(`/products/${productId}/reviews${params ? (params.startsWith('?') ? params : `?${params}`) : ''}`),
+
+  // Admin Review Management
+  getAdminReviews: (params = '') => apiRequest(`/admin/reviews${params ? (params.startsWith('?') ? params : `?${params}`) : ''}`),
+  updateReviewStatus: (reviewId, status) => apiRequest(`/admin/reviews/${reviewId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  }),
+  toggleReviewFeature: (reviewId, isFeatured) => apiRequest(`/admin/reviews/${reviewId}/feature`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isFeatured }),
+  }),
+  replyToReview: (reviewId, reply) => apiRequest(`/admin/reviews/${reviewId}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ reply }),
+  }),
+  deleteReview: (reviewId) => apiRequest(`/admin/reviews/${reviewId}`, {
+    method: 'DELETE',
+  }),
+  getAdminReviewStats: () => apiRequest('/admin/reviews/stats'),
 };
 

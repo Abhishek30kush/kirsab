@@ -23,9 +23,9 @@ export const getOrCreateSettings = async () => {
         serviceAreaState: 'Uttar Pradesh',
         serviceAreaPincode: '211011',
         serviceAreaDescription: 'वर्तमान में केवल शेरवानी लेगेसी (Shervani Legacy) एवं आसपास के चयनित फ्लैट्स के लिए उपलब्ध।',
-        minOrderValue: 150,
+        minOrderValue: 49,
         standardDeliveryFee: 10,
-        freeDeliveryThreshold: 299,
+        freeDeliveryThreshold: 99,
         isStoreOpen: true,
         deliverySlotsJson: JSON.stringify([
           {

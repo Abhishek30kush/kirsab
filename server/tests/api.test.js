@@ -8,9 +8,9 @@ import { prisma } from '../config/db.js';
 
 test('1. calculateOrderTotals: correct totals and free delivery calculation', () => {
   const storeSettings = {
-    minOrderValue: 150,
+    minOrderValue: 49,
     standardDeliveryFee: 10,
-    freeDeliveryThreshold: 299,
+    freeDeliveryThreshold: 99,
     isStoreOpen: true,
   };
 
@@ -19,35 +19,35 @@ test('1. calculateOrderTotals: correct totals and free delivery calculation', ()
     { id: 'onion', nameEn: 'Onion', nameHi: 'प्याज़', unit: '1 kg', price: 35, isConfigured: true, inStock: true, isActive: true },
   ];
 
-  // Case A: Subtotal = (30 * 4) + (35 * 2) = 120 + 70 = 190. Standard fee = 10. Total = 200.
+  // Case A: Subtotal = (30 * 1) + (35 * 1) = 65. Below ₹99 threshold → fee = 10. Total = 75.
   const resultA = calculateOrderTotals({
     items: [
-      { productId: 'potato', quantity: 4 },
-      { productId: 'onion', quantity: 2 },
+      { productId: 'potato', quantity: 1 },
+      { productId: 'onion', quantity: 1 },
     ],
     products,
     storeSettings,
   });
 
-  assert.equal(resultA.subtotal, 190);
+  assert.equal(resultA.subtotal, 65);
   assert.equal(resultA.deliveryFee, 10);
-  assert.equal(resultA.finalTotal, 200);
+  assert.equal(resultA.finalTotal, 75);
   assert.equal(resultA.verifiedOrderItems.length, 2);
 
-  // Case B: Free Delivery on >= 299: (30 * 10) = 300. Fee = 0.
+  // Case B: Free Delivery on >= 99: (30 * 4) = 120. Fee = 0.
   const resultB = calculateOrderTotals({
-    items: [{ productId: 'potato', quantity: 10 }],
+    items: [{ productId: 'potato', quantity: 4 }],
     products,
     storeSettings,
   });
 
-  assert.equal(resultB.subtotal, 300);
+  assert.equal(resultB.subtotal, 120);
   assert.equal(resultB.deliveryFee, 0);
-  assert.equal(resultB.finalTotal, 300);
+  assert.equal(resultB.finalTotal, 120);
 });
 
 test('2. calculateOrderTotals: rejects unconfigured or null-price products', () => {
-  const storeSettings = { minOrderValue: 150, standardDeliveryFee: 10, freeDeliveryThreshold: 299, isStoreOpen: true };
+  const storeSettings = { minOrderValue: 49, standardDeliveryFee: 10, freeDeliveryThreshold: 99, isStoreOpen: true };
   const products = [
     { id: 'lemon', nameEn: 'Lemon', nameHi: 'नींबू', unit: '4 pieces', price: null, isConfigured: false, inStock: true, isActive: true },
   ];
@@ -65,26 +65,26 @@ test('2. calculateOrderTotals: rejects unconfigured or null-price products', () 
 });
 
 test('3. calculateOrderTotals: rejects orders below minimum order value', () => {
-  const storeSettings = { minOrderValue: 150, standardDeliveryFee: 10, freeDeliveryThreshold: 299, isStoreOpen: true };
+  const storeSettings = { minOrderValue: 49, standardDeliveryFee: 10, freeDeliveryThreshold: 99, isStoreOpen: true };
   const products = [
     { id: 'potato', nameEn: 'Potato', nameHi: 'आलू', unit: '1 kg', price: 30, isConfigured: true, inStock: true, isActive: true },
   ];
 
-  // 30 * 2 = 60 < 150
+  // 30 * 1 = 30 < 49
   assert.throws(
     () => {
       calculateOrderTotals({
-        items: [{ productId: 'potato', quantity: 2 }],
+        items: [{ productId: 'potato', quantity: 1 }],
         products,
         storeSettings,
       });
     },
-    { message: /न्यूनतम ऑर्डर मूल्य ₹150 है/ }
+    { message: /न्यूनतम ऑर्डर मूल्य ₹49 है/ }
   );
 });
 
 test('4. calculateOrderTotals: rejects invalid or negative quantities', () => {
-  const storeSettings = { minOrderValue: 150, standardDeliveryFee: 10, freeDeliveryThreshold: 299, isStoreOpen: true };
+  const storeSettings = { minOrderValue: 49, standardDeliveryFee: 10, freeDeliveryThreshold: 99, isStoreOpen: true };
   const products = [
     { id: 'potato', nameEn: 'Potato', nameHi: 'आलू', unit: '1 kg', price: 30, isConfigured: true, inStock: true, isActive: true },
   ];

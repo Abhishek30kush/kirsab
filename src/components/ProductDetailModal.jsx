@@ -9,13 +9,18 @@ import {
   AlertCircle,
   Tag,
   Check,
-  ShieldCheck
+  ShieldCheck,
+  Star,
+  MessageSquare,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useCustomer } from '../context/CustomerContext';
 import { formatCurrency, isPriceConfigured } from '../utils/currency';
 import { QuantitySelector } from './QuantitySelector';
+import { StarRating } from './common/StarRating';
 import { getFreshImageUrl } from '../utils/image';
+import { api } from '../utils/api';
 
 export const ProductDetailModal = () => {
   const {
@@ -27,7 +32,13 @@ export const ProductDetailModal = () => {
     removeFromCart,
   } = useCart();
   const { t, tProduct, isHindi } = useLanguage();
+  const { customerUser, orders, openReviewModal, setIsAuthModalOpen } = useCustomer();
   const [imageError, setImageError] = useState(false);
+
+  // Product reviews state
+  const [productReviews, setProductReviews] = useState([]);
+  const [productStats, setProductStats] = useState(null);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
 
   const product = selectedProductForDetail;
 
@@ -35,6 +46,37 @@ export const ProductDetailModal = () => {
   React.useEffect(() => {
     setImageError(false);
   }, [product?.id, product?.image, product?.updatedAt]);
+
+  // Load genuine approved reviews for this product
+  const loadProductReviews = async (prodId) => {
+    if (!prodId) return;
+    try {
+      setIsLoadingReviews(true);
+      const res = await api.getProductReviews(prodId, 'limit=10');
+      if (res.success) {
+        setProductReviews(res.reviews || []);
+        if (res.stats) setProductStats(res.stats);
+      }
+    } catch (e) {
+      console.error('Failed to load product reviews:', e);
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    if (product?.id) {
+      loadProductReviews(product.id);
+    }
+  }, [product?.id]);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      if (product?.id) loadProductReviews(product.id);
+    };
+    window.addEventListener('kirsab:reviews_updated', handleUpdate);
+    return () => window.removeEventListener('kirsab:reviews_updated', handleUpdate);
+  }, [product?.id]);
 
   if (!selectedProductForDetail) return null;
 
@@ -129,6 +171,19 @@ export const ProductDetailModal = () => {
                 )}
               </span>
             </div>
+
+            {/* Genuine Product Rating Score */}
+            {productStats && productStats.totalReviews > 0 && (
+              <div className="mt-2 flex items-center gap-2">
+                <StarRating rating={productStats.averageRating} size="sm" />
+                <span className="text-xs font-black text-brand-charcoal">
+                  {productStats.averageRating}
+                </span>
+                <span className="text-xs text-brand-muted font-medium">
+                  ({productStats.totalReviews} {isHindi ? 'ग्राहक समीक्षाएं' : 'customer reviews'})
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Offer Highlight Box if active */}
@@ -231,6 +286,113 @@ export const ProductDetailModal = () => {
                 <span className="text-[10px] text-brand-muted">
                   Per {prodInfo.unitShort}
                 </span>
+              </div>
+            )}
+          </div>
+
+          {/* Customer Reviews for this Vegetable */}
+          <div className="pt-4 border-t border-brand-border/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-brand-charcoal flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <span>{isHindi ? 'ग्राहक समीक्षाएं व अनुभव' : 'Customer Reviews & Ratings'}</span>
+                </h4>
+                <p className="text-[11px] text-brand-muted">
+                  {productStats?.totalReviews
+                    ? `${productStats.totalReviews} ${isHindi ? 'सत्यापित खरीदारों की राय' : 'verified customer reviews'}`
+                    : isHindi ? 'केवल वास्तविक खरीदारों की समीक्षाएं' : 'Authentic verified reviews'}
+                </p>
+              </div>
+
+              {(() => {
+                const eligibleOrder = customerUser && orders?.length > 0
+                  ? orders.find((o) => o.status === 'delivered' && o.items?.some((i) => i.productId === product.id))
+                  : null;
+
+                if (eligibleOrder) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => openReviewModal(eligibleOrder, null, product.id)}
+                      className="px-3 py-1.5 bg-[#176B3A] hover:bg-[#2E8B57] text-white text-xs font-bold rounded-xl shadow-xs transition-all active:scale-95 flex items-center gap-1"
+                    >
+                      <Star className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+                      <span>{isHindi ? 'समीक्षा लिखें' : 'Write Review'}</span>
+                    </button>
+                  );
+                }
+
+                if (!customerUser) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#176B3A] text-xs font-bold rounded-xl border border-emerald-200 transition-colors"
+                    >
+                      {isHindi ? 'लॉगिन करें' : 'Login to Review'}
+                    </button>
+                  );
+                }
+
+                return null;
+              })()}
+            </div>
+
+            {/* Reviews List */}
+            {isLoadingReviews ? (
+              <p className="text-xs text-brand-muted italic py-3 text-center">
+                {isHindi ? 'समीक्षाएं लोड हो रही हैं...' : 'Loading reviews...'}
+              </p>
+            ) : productReviews.length === 0 ? (
+              <div className="p-4 bg-gray-50 rounded-2xl border border-brand-border/60 text-center space-y-1">
+                <p className="text-xs font-bold text-brand-charcoal">
+                  {isHindi ? 'इस सब्जी की अभी कोई समीक्षा नहीं है' : 'No reviews yet for this vegetable'}
+                </p>
+                <p className="text-[11px] text-brand-muted">
+                  {isHindi
+                    ? 'ऑर्डर डिलीवर होने के बाद सबसे पहले अपनी राय साझा करें!'
+                    : 'Be the first to review after receiving your order delivery!'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                {productReviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="p-3 bg-gray-50 rounded-xl border border-brand-border/60 text-xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-brand-charcoal">
+                          {rev.customerName || 'Verified Buyer'}
+                        </span>
+                        {rev.isVerifiedPurchase && (
+                          <span className="text-[10px] font-bold text-[#176B3A] bg-emerald-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                            <ShieldCheck className="w-3 h-3 text-[#176B3A]" />
+                            <span>Verified</span>
+                          </span>
+                        )}
+                      </div>
+                      <StarRating rating={rev.rating} size="xs" />
+                    </div>
+
+                    {rev.title && <p className="font-bold text-brand-charcoal text-[11px]">{rev.title}</p>}
+                    <p className="text-brand-charcoal/90 text-[11px] leading-relaxed italic">
+                      "{rev.comment}"
+                    </p>
+
+                    {rev.adminReply && (
+                      <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-100 text-[10px] space-y-0.5">
+                        <span className="font-black text-[#176B3A] flex items-center gap-1">
+                          <MessageSquare className="w-2.5 h-2.5 text-[#176B3A]" />
+                          <span>Official KIRSAB Response</span>
+                        </span>
+                        <p className="text-brand-charcoal italic">{rev.adminReply}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

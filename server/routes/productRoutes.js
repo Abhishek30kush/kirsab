@@ -8,12 +8,14 @@ import {
   toggleStock,
   deleteProduct,
 } from '../controllers/productController.js';
+import { getProductReviews } from '../controllers/reviewController.js';
 import { requireAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Public customer endpoint
 router.get('/', getPublicProducts);
+router.get('/:productId/reviews', getProductReviews);
 
 // Protected admin endpoints
 router.get('/admin/all', requireAdmin, getAllProductsAdmin);

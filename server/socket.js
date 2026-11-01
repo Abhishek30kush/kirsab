@@ -304,4 +304,96 @@ export async function broadcastOrderAssignedToPartner(partnerId, order, meta = {
   }
 }
 
+/**
+ * Broadcast event when a customer submits a new review
+ */
+export function broadcastReviewSubmitted(review, customer = {}) {
+  if (!io) return;
+  try {
+    const payload = {
+      review,
+      customerName: customer.name || 'Verified Customer',
+      timestamp: new Date().toISOString(),
+      alert: true,
+      title: '⭐ नई ग्राहक समीक्षा (New Customer Review)',
+      message: `${customer.name || 'Customer'} ने ${review.rating}-स्टार समीक्षा दर्ज की है।`,
+    };
+    io.to('admin_channel').emit('admin:review_submitted', payload);
+  } catch (err) {
+    console.error('Failed to broadcast review submitted:', err);
+  }
+}
+
+/**
+ * Broadcast event when an admin updates review status (e.g. APPROVED, REJECTED, HIDDEN)
+ */
+export function broadcastReviewStatusUpdated(review) {
+  if (!io) return;
+  try {
+    const payload = {
+      review,
+      status: review.status,
+      timestamp: new Date().toISOString(),
+    };
+    // Admin channel
+    io.to('admin_channel').emit('admin:review_updated', payload);
+
+    // Private customer channel
+    if (review.customerId) {
+      io.to(`customer_${review.customerId}`).emit('customer:review_status_updated', {
+        ...payload,
+        title: review.status === 'APPROVED' ? '✅ आपकी समीक्षा स्वीकृत हुई (Review Approved)' : 'ℹ️ आपकी समीक्षा की स्थिति अपडेट हुई',
+        message: review.status === 'APPROVED' 
+          ? 'आपकी समीक्षा अब किरसाब वेबसाइट पर प्रदर्शित है। धन्यवाद!' 
+          : `आपकी समीक्षा की स्थिति: ${review.status}`,
+      });
+    }
+
+    // Public update to refresh testimonials and product ratings
+    io.emit('public:reviews_updated', {
+      reviewId: review.id,
+      productId: review.productId,
+      status: review.status,
+      timestamp: payload.timestamp,
+    });
+  } catch (err) {
+    console.error('Failed to broadcast review status update:', err);
+  }
+}
+
+/**
+ * Broadcast event when an admin replies to a customer review
+ */
+export function broadcastReviewReplied(review) {
+  if (!io) return;
+  try {
+    const payload = {
+      review,
+      adminReply: review.adminReply,
+      timestamp: new Date().toISOString(),
+    };
+    // Admin channel
+    io.to('admin_channel').emit('admin:review_updated', payload);
+
+    // Private customer channel
+    if (review.customerId) {
+      io.to(`customer_${review.customerId}`).emit('customer:review_reply_received', {
+        ...payload,
+        title: '💬 किरसाब टीम का उत्तर (Official Response from KIRSAB)',
+        message: 'आपकी समीक्षा पर किरसाब टीम ने आधिकारिक प्रतिक्रिया दी है।',
+      });
+    }
+
+    // Public update
+    io.emit('public:reviews_updated', {
+      reviewId: review.id,
+      productId: review.productId,
+      timestamp: payload.timestamp,
+    });
+  } catch (err) {
+    console.error('Failed to broadcast review reply:', err);
+  }
+}
+
+
 
