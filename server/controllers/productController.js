@@ -14,6 +14,38 @@ export const ALLOWED_UNITS = [
 ];
 
 /**
+ * Public: Get all active categories with product counts
+ */
+export const getPublicCategories = async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      orderBy: { displayOrder: 'asc' },
+      include: {
+        _count: {
+          select: {
+            products: {
+              where: { isActive: true },
+            },
+          },
+        },
+      },
+    });
+
+    return res.json({
+      success: true,
+      categories,
+    });
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'श्रेणियां लोड करने में त्रुटि',
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Public: Get active products for customer shop
  */
 export const getPublicProducts = async (req, res) => {
@@ -366,7 +398,19 @@ export const updateProduct = async (req, res) => {
     if (stockQuantity !== undefined) updateData.stockQuantity = Number(stockQuantity);
     if (badge !== undefined) updateData.badge = badge ? badge.trim() : null;
     if (description !== undefined) updateData.description = description ? description.trim() : null;
-    if (image !== undefined) updateData.image = image.trim();
+    if (image !== undefined) {
+      const trimmedImage = image.trim();
+      if (trimmedImage) {
+        updateData.image = trimmedImage;
+        // If admin is pasting a URL via the edit form (not via upload endpoint),
+        // mark it as external and clear any old Cloudinary key reference
+        if (existing.imageProvider === 'cloudinary' && trimmedImage !== existing.image) {
+          updateData.imageStorageKey = null;
+          updateData.imageProvider = 'external';
+          updateData.imageUpdatedAt = new Date();
+        }
+      }
+    }
     if (fallbackEmoji !== undefined) updateData.fallbackEmoji = fallbackEmoji ? fallbackEmoji.trim() : '🥬';
 
     const updated = await prisma.product.update({

@@ -231,6 +231,59 @@ export const api = {
     method: 'DELETE',
   }),
 
+  // Admin Product Image Management
+  getCloudinaryStatus: () => apiRequest('/products/admin/cloudinary-status'),
+  /**
+   * Upload image file from device gallery/camera to Cloudinary.
+   * Uses multipart/form-data — bypasses the JSON apiRequest wrapper.
+   */
+  uploadProductImage: async (productId, file, onProgress) => {
+    const token = getAdminToken();
+    const formData = new FormData();
+    formData.append('image', file);
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE_URL}/products/admin/${productId}/image`, true);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      if (onProgress) {
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            onProgress(Math.round((e.loaded / e.total) * 100));
+          }
+        });
+      }
+
+      xhr.onload = () => {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(data);
+          } else {
+            reject(new Error(data.message || `Upload failed: ${xhr.status}`));
+          }
+        } catch {
+          reject(new Error('Invalid server response during image upload'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during image upload'));
+      xhr.ontimeout = () => reject(new Error('Image upload timed out'));
+      xhr.timeout = 60000; // 60 seconds
+
+      xhr.send(formData);
+    });
+  },
+  setProductImageUrl: (productId, imageUrl) => apiRequest(`/products/admin/${productId}/image-url`, {
+    method: 'PATCH',
+    body: JSON.stringify({ imageUrl }),
+  }),
+  removeProductImage: (productId) => apiRequest(`/products/admin/${productId}/image`, {
+    method: 'DELETE',
+    body: JSON.stringify({ confirm: true }),
+  }),
+
   // Admin Orders & Analytics
   getAdminOrders: (params = '') => apiRequest(`/orders/admin${params}`),
   getOrderStats: () => apiRequest('/orders/admin/stats'),

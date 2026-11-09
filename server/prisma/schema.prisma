@@ -46,7 +46,10 @@ model Product {
   stockQuantity Int         @default(100)
   badge         String?
   description   String?
-  image         String
+  image              String   // Public display URL (Cloudinary URL or external URL)
+  imageStorageKey    String?  // Cloudinary public_id — used for managed deletion/replacement
+  imageProvider      String?  // 'cloudinary' | 'external' | null (defaults to external/Unsplash)
+  imageUpdatedAt     DateTime? // Tracks when image was last changed
   fallbackEmoji String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -55,6 +58,7 @@ model Product {
   competitorPrices    CompetitorPrice[]
   offers              OfferProduct[]
   reviews             Review[]
+  wishlistItems       WishlistItem[]
 
   @@index([categoryId])
   @@index([inStock, isConfigured, isActive])
@@ -229,6 +233,8 @@ model User {
   passwordHash         String
   role                 String                      @default("customer") // customer, delivery_partner, admin
   isActive             Boolean                     @default(true)
+  isAvailable          Boolean                     @default(true) // For delivery partner availability status
+  pushToken            String?                     // Expo push notification token
   vehicleType          String?                     // For delivery partner: bike, scooter, cycle
   vehicleNumber        String?                     // For delivery partner
   createdAt            DateTime                    @default(now())
@@ -239,6 +245,7 @@ model User {
   assignedDeliveries   Order[]                     @relation("DeliveryPartnerOrders")
   auditActions         DeliveryVerificationAudit[]
   reviews              Review[]
+  wishlistItems        WishlistItem[]
 
   @@index([phone])
   @@index([email])
@@ -392,4 +399,19 @@ model Review {
   @@index([status, createdAt])
   @@index([status, isFeatured])
 }
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@index([createdAt])
+}
+
 

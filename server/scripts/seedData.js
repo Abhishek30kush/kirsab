@@ -265,6 +265,9 @@ async function seed() {
   console.log(`✅ Seeded ${SEED_CATEGORIES.length} categories.`);
 
   // 2. Seed Products
+  // IMPORTANT: The 'update' block intentionally does NOT include 'image'.
+  // This protects admin-uploaded/customized images from being overwritten when the seed is re-run.
+  // 'image' is only set during initial 'create'. If you need to reset an image, do it via the admin dashboard.
   for (const p of SEED_PRODUCTS) {
     await prisma.product.upsert({
       where: { id: p.id },
@@ -275,20 +278,19 @@ async function seed() {
         unit: p.unit,
         unitHindi: p.unitHindi,
         unitShort: p.unitShort,
-        price: p.price,
-        isConfigured: p.isConfigured,
+        // price: intentionally NOT overwritten — admin configures this via Pricing Calculator
+        // image: intentionally NOT overwritten — admin manages via Image Upload system
+        // isConfigured: intentionally NOT overwritten — managed by backend pricing
         inStock: p.inStock,
         isActive: p.isActive,
-        stockQuantity: p.stockQuantity,
         badge: p.badge,
         description: p.description,
-        image: p.image,
         fallbackEmoji: p.fallbackEmoji,
       },
       create: p,
     });
   }
-  console.log(`✅ Seeded ${SEED_PRODUCTS.length} vegetables with placeholder & unconfigured states.`);
+  console.log(`✅ Seeded ${SEED_PRODUCTS.length} vegetables (images & prices preserved for existing records).`);
 
   // 3. Ensure Default Store Settings
   await getOrCreateSettings();
