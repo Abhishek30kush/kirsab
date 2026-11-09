@@ -6,10 +6,16 @@ import {
   pickupOrder,
   markOutForDelivery,
   verifyPinAndDeliver,
+  toggleAvailability,
+  updateDeliveryPushToken,
 } from '../controllers/deliveryController.js';
 import { requireDeliveryPartner } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Availability toggle & push token
+router.post('/availability', requireDeliveryPartner, toggleAvailability);
+router.post('/push-token', requireDeliveryPartner, updateDeliveryPushToken);
 
 // Delivery partner assigned orders
 router.get('/orders', requireDeliveryPartner, getAssignedOrders);

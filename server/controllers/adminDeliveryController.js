@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '../config/db.js';
 import { broadcastOrderStatusUpdated, broadcastOrderAssignedToPartner } from '../socket.js';
+import { sendPushNotificationToUser } from '../utils/notifications.js';
 
 
 /**
@@ -394,6 +395,22 @@ export const assignOrderDelivery = async (req, res) => {
     }).catch((e) =>
       console.error('Socket broadcast error on partner assignment:', e)
     );
+
+    // Push notification to delivery partner
+    sendPushNotificationToUser(partner.id, {
+      title: isReassignment ? '🔄 ऑर्डर पुनः असाइन हुआ (Order Reassigned)' : '🛵 नया ऑर्डर असाइन हुआ! (New Order Assigned)',
+      body: `ऑर्डर #${updated.updatedOrder.orderNumber} आपको सौंपा गया है। डिलीवरी पता: ${updated.updatedOrder.address}`,
+      data: { orderId: updated.updatedOrder.id, status: updated.updatedOrder.status },
+    }).catch(() => {});
+
+    // Push notification to customer
+    if (updated.updatedOrder.customerId) {
+      sendPushNotificationToUser(updated.updatedOrder.customerId, {
+        title: '🛵 डिलीवरी पार्टनर असाइन हो गया! (Partner Assigned)',
+        body: `${partner.name} आपका ऑर्डर #${updated.updatedOrder.orderNumber} लेकर पहुंचेंगे।`,
+        data: { orderId: updated.updatedOrder.id, partnerName: partner.name },
+      }).catch(() => {});
+    }
 
     const { deliveryPinHash, deliveryPinEncrypted, ...sanitized } = updated.updatedOrder;
 

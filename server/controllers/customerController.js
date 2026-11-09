@@ -594,3 +594,244 @@ export const getCustomerOrderDeliveryPartner = async (req, res) => {
   }
 };
 
+/**
+ * Get customer wishlist items with full product details
+ */
+export const getCustomerWishlist = async (req, res) => {
+  try {
+    const items = await prisma.wishlistItem.findMany({
+      where: { userId: req.user.id },
+      include: {
+        product: {
+          include: {
+            category: true,
+            reviews: {
+              where: { status: 'APPROVED' },
+              select: { rating: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const products = items.map((item) => {
+      const p = item.product;
+      const ratings = p.reviews?.map((r) => r.rating) || [];
+      const reviewsCount = ratings.length;
+      const averageRating = reviewsCount > 0
+        ? Math.round((ratings.reduce((a, b) => a + b, 0) / reviewsCount) * 10) / 10
+        : null;
+
+      return {
+        ...p,
+        wishlistId: item.id,
+        wishlistedAt: item.createdAt,
+        averageRating,
+        reviewsCount,
+      };
+    });
+
+    return res.json({
+      success: true,
+      items: products,
+      productIds: products.map((p) => p.id),
+    });
+  } catch (error) {
+    console.error('Error fetching customer wishlist:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'विशलिस्ट लोड करने में त्रुटि (Failed to load wishlist)',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Toggle item in customer wishlist
+ */
+export const toggleCustomerWishlist = async (req, res) => {
+  try {
+    const { productId } = req.body;
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: 'उत्पाद आईडी आवश्यक है (Product ID is required)',
+      });
+    }
+
+    const existing = await prisma.wishlistItem.findUnique({
+      where: {
+        userId_productId: {
+          userId: req.user.id,
+          productId,
+        },
+      },
+    });
+
+    if (existing) {
+      await prisma.wishlistItem.delete({
+        where: { id: existing.id },
+      });
+      return res.json({
+        success: true,
+        isWishlisted: false,
+        message: 'विशलिस्ट से हटा दिया गया (Removed from wishlist)',
+      });
+    } else {
+      await prisma.wishlistItem.create({
+        data: {
+          userId: req.user.id,
+          productId,
+        },
+      });
+      return res.json({
+        success: true,
+        isWishlisted: true,
+        message: 'विशलिस्ट में जोड़ा गया (Added to wishlist)',
+      });
+    }
+  } catch (error) {
+    console.error('Error toggling wishlist:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'विशलिस्ट अपडेट करने में त्रुटि',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Register / Update customer Expo push token
+ */
+export const updateCustomerPushToken = async (req, res) => {
+  try {
+    const { pushToken } = req.body;
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { pushToken: pushToken || null },
+    });
+    return res.json({
+      success: true,
+      message: 'पुश नोटिफिकेशन टोकन सहेजा गया (Push token updated)',
+    });
+  } catch (error) {
+    console.error('Error updating push token:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'टोकन अपडेट विफल',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Admin: View registered customers with aggregate stats
+ */
+export const getAdminCustomersList = async (req, res) => {
+  try {
+    const { search = '' } = req.query;
+
+    const where = {
+      role: 'customer',
+    };
+
+    if (search.trim()) {
+      where.OR = [
+        { name: { contains: search.trim(), mode: 'insensitive' } },
+        { phone: { contains: search.trim() } },
+        { email: { contains: search.trim(), mode: 'insensitive' } },
+      ];
+    }
+
+    const customers = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        isActive: true,
+        createdAt: true,
+        _count: {
+          select: {
+            orders: true,
+            reviews: true,
+            addresses: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json({
+      success: true,
+      customers,
+      total: customers.length,
+    });
+  } catch (error) {
+    console.error('Error fetching admin customers:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'ग्राहक सूची लोड करने में त्रुटि',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Admin: View single customer details with order history & reviews
+ */
+export const getAdminCustomerDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const customer = await prisma.user.findFirst({
+      where: { id, role: 'customer' },
+      include: {
+        addresses: {
+          orderBy: { isDefault: 'desc' },
+        },
+        orders: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            items: true,
+          },
+        },
+        reviews: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            product: {
+              select: { nameEn: true, nameHi: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'ग्राहक नहीं मिला (Customer not found)',
+      });
+    }
+
+    const { passwordHash, ...sanitized } = customer;
+
+    return res.json({
+      success: true,
+      customer: sanitized,
+    });
+  } catch (error) {
+    console.error('Error fetching customer details:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'ग्राहक विवरण लोड करने में त्रुटि',
+      error: error.message,
+    });
+  }
+};
+
+

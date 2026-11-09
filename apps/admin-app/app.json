@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "KIRSAB Admin - Store & Delivery Control",
+    "slug": "kirsab-admin",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#176B3A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "in.kirsab.admin"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#176B3A"
+      },
+      "package": "in.kirsab.admin",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "CALL_PHONE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "kirsab-admin-app"
+      }
+    }
+  }
+}
+

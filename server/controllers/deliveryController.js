@@ -1,6 +1,7 @@
 import { prisma } from '../config/db.js';
 import { verifyPin } from '../utils/pinSecurity.js';
 import { broadcastOrderStatusUpdated } from '../socket.js';
+import { sendPushNotificationToUser } from '../utils/notifications.js';
 
 /**
  * Get assigned orders for the authenticated delivery partner
@@ -603,6 +604,15 @@ export const verifyPinAndDeliver = async (req, res) => {
       broadcastOrderStatusUpdated(result.broadcast.order, result.broadcast.history).catch((e) =>
         console.error('Socket broadcast error after delivery verification:', e)
       );
+
+      // Trigger push notification to customer
+      if (result.broadcast.order.customerId) {
+        sendPushNotificationToUser(result.broadcast.order.customerId, {
+          title: '🎉 Order Delivered! (ऑर्डर डिलीवर हुआ)',
+          body: `आपका ऑर्डर #${result.broadcast.order.orderNumber} सफलतापूर्वक डिलीवर हो गया है। अपना अनुभव साझा करें!`,
+          data: { orderId: result.broadcast.order.id, status: 'delivered' },
+        }).catch(() => {});
+      }
     }
 
     return res.status(result.status).json(result.data);
@@ -615,3 +625,75 @@ export const verifyPinAndDeliver = async (req, res) => {
     });
   }
 };
+
+/**
+ * Toggle Delivery Partner Online/Offline Availability
+ */
+export const toggleAvailability = async (req, res) => {
+  try {
+    const partnerId = req.user.id;
+    const { isAvailable } = req.body;
+
+    const partner = await prisma.user.findUnique({
+      where: { id: partnerId },
+      select: { isAvailable: true },
+    });
+
+    if (!partner) {
+      return res.status(404).json({
+        success: false,
+        message: 'डिलीवरी पार्टनर नहीं मिला',
+      });
+    }
+
+    const nextAvailability = typeof isAvailable === 'boolean' ? isAvailable : !partner.isAvailable;
+
+    const updated = await prisma.user.update({
+      where: { id: partnerId },
+      data: { isAvailable: nextAvailability },
+      select: {
+        id: true,
+        name: true,
+        isAvailable: true,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: updated.isAvailable ? 'अब आप ऑनलाइन हैं (You are Online)' : 'अब आप ऑफ़लाइन हैं (You are Offline)',
+      isAvailable: updated.isAvailable,
+    });
+  } catch (error) {
+    console.error('Error toggling availability:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'उपलब्धता स्थिति बदलने में विफल',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Register / Update delivery partner Expo push token
+ */
+export const updateDeliveryPushToken = async (req, res) => {
+  try {
+    const { pushToken } = req.body;
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { pushToken: pushToken || null },
+    });
+    return res.json({
+      success: true,
+      message: 'पुश नोटिफिकेशन टोकन सहेजा गया (Push token updated)',
+    });
+  } catch (error) {
+    console.error('Error updating delivery push token:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'टोकन अपडेट विफल',
+      error: error.message,
+    });
+  }
+};
+
