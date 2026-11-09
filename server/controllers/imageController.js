@@ -327,3 +327,4 @@ export const getCloudinaryStatus = async (req, res) => {
       : '⚠️ Cloudinary is not configured. Add credentials to server/.env to enable uploads.',
   });
 };
+

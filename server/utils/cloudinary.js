@@ -202,3 +202,4 @@ export const deleteImageFromCloudinary = async (publicId) => {
     return false;
   }
 };
+
